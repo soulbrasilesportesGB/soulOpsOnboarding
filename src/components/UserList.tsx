@@ -1,6 +1,6 @@
 // src/components/UserList.tsx
 import { useEffect, useState } from 'react';
-import { Search, User as UserIcon, Award } from 'lucide-react';
+import { Search, User as UserIcon, Award, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Onboarding, User as UserType } from '../types/database';
 
@@ -134,13 +134,134 @@ export function UserList({ onSelectUser }: UserListProps) {
     return 'bg-gray-100 text-gray-700';
   };
 
+  const exportToCSV = () => {
+    // Define all possible must-have and nice-to-have fields
+    const mustHaveFields = [
+      'foto',
+      'bio',
+      'modalidade',
+      'nivel',
+      'estado',
+      'cidade',
+      'telefone',
+      'instagram',
+      'achievements',
+      'activations',
+      'causes',
+      'education',
+      'media',
+      'results',
+    ];
+
+    const niceToHaveFields = [
+      'ranking',
+      'partners',
+      'social_actions',
+      'youtube',
+      'tiktok',
+      'linkedin',
+      'talks_mentorship',
+    ];
+
+    const headers = [
+      'Full Name',
+      'Email',
+      'Profile Kind',
+      'Entity Type',
+      'Completion Status',
+      'Completion Score (%)',
+      'Commercial Score',
+      'Tier',
+      'Created At',
+      'Updated At',
+      '',
+      '--- MUST-HAVE FIELDS ---',
+      ...mustHaveFields,
+      '',
+      '--- NICE-TO-HAVE FIELDS ---',
+      ...niceToHaveFields,
+    ];
+
+    const data = filteredUsers.map((user) => {
+      const { score, tier } = user.profile_kind === 'athlete' ? getCommercial(user) : { score: null, tier: null };
+      const missing = normalizeMissingFields(user.missing_fields);
+
+      // Create a set of missing fields (without prefix)
+      const missingSet = new Set(missing.map((field) => field.replace(/^must:|^nice:/, '')));
+
+      // For each field, check if it's missing (1 = missing, 0 = filled)
+      const mustHaveStatus = mustHaveFields.map((field) => {
+        const isMissing = missingSet.has(field);
+        return isMissing ? 'Missing' : 'Filled';
+      });
+
+      const niceToHaveStatus = niceToHaveFields.map((field) => {
+        const isMissing = missingSet.has(field);
+        return isMissing ? 'Missing' : 'Filled';
+      });
+
+      return [
+        user.users?.full_name || '',
+        user.users?.email || '',
+        user.profile_kind || '',
+        user.entity_type || '',
+        user.completion_status || '',
+        user.completion_score || '',
+        score ?? '',
+        tier ?? '',
+        new Date(user.created_at).toLocaleString(),
+        new Date(user.updated_at).toLocaleString(),
+        '',
+        '',
+        ...mustHaveStatus,
+        '',
+        '',
+        ...niceToHaveStatus,
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...data.map((row) =>
+        row
+          .map((cell) => {
+            const cellStr = String(cell ?? '');
+            return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')
+              ? `"${cellStr.replace(/"/g, '""')}"`
+              : cellStr;
+          })
+          .join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `athletes-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading users...</div>;
   }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">User List</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">User List</h2>
+        <button
+          onClick={exportToCSV}
+          disabled={filteredUsers.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+        >
+          <Download size={18} />
+          Export to CSV
+        </button>
+      </div>
 
       <div className="mb-6 space-y-4">
         <div className="relative">
