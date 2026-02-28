@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from './lib/supabase';
+import { useState } from 'react';
+import { useAuth } from './hooks/useAuth';
 
 import { CSVImport } from './components/CSVImport';
 import { Dashboard } from './components/Dashboard';
@@ -12,40 +11,11 @@ import { FileSpreadsheet, LayoutDashboard, Users, LogOut } from 'lucide-react';
 import type { View } from './types/common';
 
 function App() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { session, loading: authLoading, signOut } = useAuth();
 
   const [currentView, setCurrentView] = useState<View>('import');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) console.error('getSession error:', error);
-        if (mounted) {
-          setSession(data.session);
-          setAuthLoading(false);
-        }
-      } catch (e) {
-        console.error('getSession exception:', e);
-        if (mounted) setAuthLoading(false);
-      }
-    })();
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setAuthLoading(false);
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, []);
 
   const handleImportComplete = () => {
     setRefreshKey((prev) => prev + 1);
@@ -63,7 +33,7 @@ function App() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     setSelectedUserId(null);
     setCurrentView('import');
   };
