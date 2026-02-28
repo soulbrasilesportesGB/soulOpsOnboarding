@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Calendar, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { normalizeMissingFields } from '../lib/utils';
 import type { Onboarding, Outreach, User } from '../types/database';
 
 interface UserDetailProps {
@@ -25,20 +26,6 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
   useEffect(() => {
     fetchUserData();
   }, [userId]);
-
-  const normalizeMissingFields = (v: any): string[] => {
-    if (!v) return [];
-    if (Array.isArray(v)) return v.filter(Boolean).map(String);
-    if (typeof v === 'string') {
-      const s = v.trim();
-      if (!s) return [];
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
-      } catch (_) {}
-    }
-    return [];
-  };
 
   const fetchUserData = async () => {
     setLoading(true);
@@ -67,11 +54,11 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
     e.preventDefault();
 
     try {
-      const { error } = await supabase.from('outreach').insert({
+      const { error } = await (supabase.from('outreach') as any).insert({
         user_id: userId,
         channel: outreachForm.channel,
-        outcome: outreachForm.outcome,
-        notes: outreachForm.notes,
+        outcome: outreachForm.outcome || null,
+        notes: outreachForm.notes || null,
         next_followup_at: outreachForm.next_followup_at || null,
       });
 

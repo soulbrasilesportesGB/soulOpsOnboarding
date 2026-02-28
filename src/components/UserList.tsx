@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Search, User as UserIcon, Award, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { normalizeMissingFields, STATUS_BADGE_COLORS } from '../lib/utils';
 import type { Onboarding, User as UserType } from '../types/database';
 
 interface UserWithOnboarding extends Onboarding {
@@ -54,20 +55,6 @@ export function UserList({ onSelectUser }: UserListProps) {
     }
   };
 
-  const normalizeMissingFields = (v: any): string[] => {
-    if (!v) return [];
-    if (Array.isArray(v)) return v.filter(Boolean).map(String);
-    if (typeof v === 'string') {
-      const s = v.trim();
-      if (!s) return [];
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
-      } catch (_) {}
-    }
-    return [];
-  };
-
   const filteredUsers = users.filter((user) => {
     const matchesProfileKind = profileKindFilter === 'all' || user.profile_kind === profileKindFilter;
     const matchesStatus = statusFilter === 'all' || user.completion_status === statusFilter;
@@ -80,23 +67,6 @@ export function UserList({ onSelectUser }: UserListProps) {
 
     return matchesProfileKind && matchesStatus && matchesSearch;
   });
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'complete':
-        return 'bg-green-100 text-green-800';
-      case 'acceptable':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'almost':
-        return 'bg-blue-100 text-blue-800';
-      case 'incomplete':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'stalled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getProfileKindBadge = (kind: string) => {
     switch (kind) {
@@ -363,7 +333,7 @@ export function UserList({ onSelectUser }: UserListProps) {
                       {labelProfileKind(user.profile_kind)}
                     </span>
 
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(user.completion_status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_BADGE_COLORS[user.completion_status] || STATUS_BADGE_COLORS['incomplete']}`}>
                       {user.completion_status}
                     </span>
 

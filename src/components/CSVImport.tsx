@@ -476,7 +476,8 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
         updated_at_portal: p.updated_at,
       }));
 
-      const { error: usersError } = await supabase.from('users').upsert(usersToUpsert);
+      const { error: usersError } = await (supabase.from('users') as any)
+        .upsert(usersToUpsert);
       if (usersError) throw usersError;
 
       // role by user_id (unique)
@@ -617,8 +618,8 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
         }
       }
 
-      const { error: onboardingError } = await supabase
-        .from('onboarding')
+      const { error: onboardingError } = await (supabase
+        .from('onboarding') as any)
         .upsert(onboardingRecords, { onConflict: 'user_id,profile_kind' });
 
       if (onboardingError) throw onboardingError;
@@ -667,9 +668,9 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
       }
 
       if (commercialRows.length > 0) {
-        const { error: commercialError } = await supabase
-          .from('athlete_commercial_scores')
-          .upsert(commercialRows, { onConflict: 'athlete_id' }); // Opção A: unique em athlete_id
+        const { error: commercialError } = await (supabase
+          .from('athlete_commercial_scores') as any)
+          .upsert(commercialRows, { onConflict: 'athlete_id' });
 
         if (commercialError) throw commercialError;
       }

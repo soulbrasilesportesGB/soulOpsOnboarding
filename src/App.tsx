@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 
 import { CSVImport } from './components/CSVImport';
@@ -8,11 +9,10 @@ import { UserDetail } from './components/UserDetail';
 import { Auth } from './components/Auth';
 
 import { FileSpreadsheet, LayoutDashboard, Users, LogOut } from 'lucide-react';
-
-type View = 'import' | 'dashboard' | 'list' | 'detail';
+import type { View } from './types/common';
 
 function App() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const [currentView, setCurrentView] = useState<View>('import');

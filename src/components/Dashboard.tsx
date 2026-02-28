@@ -1,7 +1,8 @@
 // src/components/Dashboard.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { Users, TrendingUp, Clock, CheckCircle, Award, Handshake } from 'lucide-react';
+import { Users, Award, Handshake } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getStatusIcon, STATUS_COLORS } from '../lib/utils';
 
 interface StatusCount {
   completion_status: string;
@@ -80,40 +81,6 @@ export function Dashboard() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'complete':
-        return <CheckCircle className="text-green-600" size={24} />;
-      case 'acceptable':
-        return <CheckCircle className="text-indigo-600" size={24} />;
-      case 'almost':
-        return <TrendingUp className="text-blue-600" size={24} />;
-      case 'incomplete':
-        return <Clock className="text-yellow-600" size={24} />;
-      case 'stalled':
-        return <Users className="text-red-600" size={24} />;
-      default:
-        return <Users className="text-gray-600" size={24} />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'complete':
-        return 'bg-green-50 border-green-200';
-      case 'acceptable':
-        return 'bg-indigo-50 border-indigo-200';
-      case 'almost':
-        return 'bg-blue-50 border-blue-200';
-      case 'incomplete':
-        return 'bg-yellow-50 border-yellow-200';
-      case 'stalled':
-        return 'bg-red-50 border-red-200';
-      default:
-        return 'bg-gray-50 border-gray-200';
-    }
-  };
-
   const renderStatusCards = (counts: StatusCount[]) => {
     if (counts.length === 0) return <p className="text-gray-500">No data available</p>;
 
@@ -127,7 +94,7 @@ export function Dashboard() {
         {sorted.map(({ completion_status, count }) => (
           <div
             key={completion_status}
-            className={`flex items-center justify-between p-4 rounded-lg border ${getStatusColor(completion_status)}`}
+            className={`flex items-center justify-between p-4 rounded-lg border ${STATUS_COLORS[completion_status] || STATUS_COLORS['incomplete']}`}
           >
             <div className="flex items-center gap-3">
               {getStatusIcon(completion_status)}
@@ -229,7 +196,7 @@ export function Dashboard() {
       <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-xl font-semibold mb-4 text-gray-700">Abandoned (Stalled total)</h3>
-          <div className={`flex items-center justify-between p-4 rounded-lg border ${getStatusColor('stalled')}`}>
+          <div className={`flex items-center justify-between p-4 rounded-lg border ${STATUS_COLORS['stalled']}`}>
             <div className="flex items-center gap-3">
               {getStatusIcon('stalled')}
               <span className="font-medium">Stalled</span>
