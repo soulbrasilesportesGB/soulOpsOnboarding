@@ -24,13 +24,6 @@ interface CSVImportProps {
   onImportComplete: () => void;
 }
 
-type StatusType = 'success' | 'error' | null;
-
-// Opção A: IDs fixos (sem subir activation_types_rows)
-// "Palestras e Mentorias" (mesmo id serve pra palestra/mentoria na v1)
-const ACTIVATION_TALK_MENTOR_ID = 'ed814423-9e20-4184-880c-f45be1383c40';
-
-
 export function CSVImport({ onImportComplete }: CSVImportProps) {
   const [profilesFile, setProfilesFile] = useState<File | null>(null);
   const [userRolesFile, setUserRolesFile] = useState<File | null>(null);
