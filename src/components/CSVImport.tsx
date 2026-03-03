@@ -621,6 +621,25 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
 
       if (onboardingError) throw onboardingError;
 
+      // Write daily snapshot (one row per user per day — tracks progression over time)
+      const today = new Date().toISOString().split('T')[0];
+      const snapshots = onboardingRecords
+        .filter((r) => r.profile_kind !== 'account')
+        .map((r) => ({
+          user_id: r.user_id,
+          snapshot_date: today,
+          profile_kind: r.profile_kind,
+          completion_status: r.completion_status,
+          completion_score: r.completion_score,
+        }));
+
+      if (snapshots.length > 0) {
+        const { error: snapshotError } = await (supabase
+          .from('onboarding_snapshots') as any)
+          .upsert(snapshots, { onConflict: 'user_id,profile_kind,snapshot_date' });
+        if (snapshotError) throw snapshotError;
+      }
+
       // map onboarding status per athlete user
       const onboardingStatusByUserId: Record<string, CompletionStatus> = {};
       for (const r of onboardingRecords) {
@@ -674,7 +693,7 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
 
       setStatus({
         type: 'success',
-        message: `Import OK: ${profiles.length} profiles, ${onboardingRecords.length} onboarding records, ${commercialRows.length} commercial scores.`,
+        message: `Import OK: ${profiles.length} profiles, ${onboardingRecords.length} onboarding records, ${commercialRows.length} commercial scores, ${snapshots.length} snapshots saved for ${today}.`,
       });
 
       onImportComplete();

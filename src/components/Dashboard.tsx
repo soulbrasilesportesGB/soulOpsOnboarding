@@ -1,6 +1,6 @@
 // src/components/Dashboard.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { Users, Award, Handshake } from 'lucide-react';
+import { Users, Award, Handshake, TrendingUp, ArrowUp, Minus, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStatusIcon, STATUS_COLORS } from '../lib/utils';
 
@@ -24,12 +24,37 @@ interface CommercialRow {
   users?: { full_name: string | null; email: string | null } | null;
 }
 
+interface DailyProgress {
+  newToday: number;
+  improved: number;
+  unchanged: number;
+  hasYesterday: boolean;
+  hasToday: boolean;
+}
+
+interface TeamOpsMetrics {
+  funilLeads: number;
+  funilReunioes: number;
+  funilPropostas: number;
+  funilContratos: number;
+  postsSemanais: number | null;
+  engajamentoIG: number | null;
+  taxaAberturaEmail: number | null;
+  taxaCliqueEmail: number | null;
+}
+
+const STATUS_ORDER: Record<string, number> = {
+  stalled: 0, incomplete: 1, almost: 2, acceptable: 3, complete: 4,
+};
+
 export function Dashboard() {
   const [athleteCounts, setAthleteCounts] = useState<StatusCount[]>([]);
   const [partnerCounts, setPartnerCounts] = useState<StatusCount[]>([]);
   const [totalAthletes, setTotalAthletes] = useState<number>(0);
   const [totalPartners, setTotalPartners] = useState<number>(0);
   const [commercialRows, setCommercialRows] = useState<CommercialRow[]>([]);
+  const [dailyProgress, setDailyProgress] = useState<DailyProgress | null>(null);
+  const [teamOps, setTeamOps] = useState<TeamOpsMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,28 +77,71 @@ export function Dashboard() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [athleteRes, partnerRes, commercialRes] = await Promise.all([
+      const todayStr = new Date().toISOString().split('T')[0];
+      const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const currentMonth = todayStr.slice(0, 7);
+
+      const [athleteRes, partnerRes, commercialRes, todaySnaps, yesterdaySnaps, opsRes] = await Promise.all([
         supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'athlete'),
         supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'partner'),
         supabase
           .from('athlete_commercial_scores')
-          .select(
-            `
-            athlete_id,
-            user_id,
-            total_score,
-            tier,
-            users:users ( full_name, email )
-          `
-          )
+          .select(`athlete_id, user_id, total_score, tier, users:users ( full_name, email )`)
           .order('total_score', { ascending: false }),
+        supabase.from('onboarding_snapshots').select('user_id, profile_kind, completion_status').eq('snapshot_date', todayStr),
+        supabase.from('onboarding_snapshots').select('user_id, profile_kind, completion_status').eq('snapshot_date', yesterdayStr),
+        (supabase.from('ops_metrics') as any)
+          .select('funil_leads, funil_reunioes, funil_propostas, funil_contratos, posts_semanais, engajamento_ig, taxa_abertura_email, taxa_clique_email')
+          .eq('month', currentMonth)
+          .maybeSingle(),
       ]);
-      
+
       setAthleteCounts(countByStatus(athleteRes.data || null));
       setPartnerCounts(countByStatus(partnerRes.data || null));
       setTotalAthletes((athleteRes as any).count ?? (athleteRes.data?.length ?? 0));
       setTotalPartners((partnerRes as any).count ?? (partnerRes.data?.length ?? 0));
       setCommercialRows((commercialRes.data as any) || []);
+
+      // Daily progression
+      const today = todaySnaps.data || [];
+      const yesterday = yesterdaySnaps.data || [];
+      if (today.length > 0) {
+        const yMap = new Map<string, string>();
+        yesterday.forEach((s) => yMap.set(`${s.user_id}:${s.profile_kind}`, s.completion_status));
+
+        let newToday = 0, improved = 0, unchanged = 0;
+        today.forEach((s) => {
+          const key = `${s.user_id}:${s.profile_kind}`;
+          const prev = yMap.get(key);
+          if (!prev) {
+            newToday++;
+          } else {
+            const prevOrd = STATUS_ORDER[prev] ?? 0;
+            const currOrd = STATUS_ORDER[s.completion_status] ?? 0;
+            if (currOrd > prevOrd) improved++;
+            else unchanged++;
+          }
+        });
+
+        setDailyProgress({ newToday, improved, unchanged, hasYesterday: yesterday.length > 0, hasToday: true });
+      } else {
+        setDailyProgress({ newToday: 0, improved: 0, unchanged: 0, hasYesterday: false, hasToday: false });
+      }
+
+      // Team ops metrics (funil + social — financial fields not included)
+      if (opsRes.data) {
+        const d = opsRes.data;
+        setTeamOps({
+          funilLeads: d.funil_leads || 0,
+          funilReunioes: d.funil_reunioes || 0,
+          funilPropostas: d.funil_propostas || 0,
+          funilContratos: d.funil_contratos || 0,
+          postsSemanais: d.posts_semanais ?? null,
+          engajamentoIG: d.engajamento_ig ?? null,
+          taxaAberturaEmail: d.taxa_abertura_email ?? null,
+          taxaCliqueEmail: d.taxa_clique_email ?? null,
+        });
+      }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     } finally {
@@ -168,6 +236,41 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">Onboarding Dashboard</h2>
+
+      {/* Daily Progression */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={20} className="text-indigo-600" />
+          <h3 className="text-xl font-semibold text-gray-700">Progressão Diária</h3>
+          <span className="text-xs text-gray-400 ml-1">— comparando hoje vs ontem</span>
+        </div>
+
+        {!dailyProgress || !dailyProgress.hasToday ? (
+          <p className="text-sm text-gray-500">
+            Nenhum dado de hoje ainda. Faça a importação do CSV para registrar o snapshot do dia.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-col items-center p-4 rounded-lg bg-indigo-50 border border-indigo-100">
+              <Sparkles size={20} className="text-indigo-500 mb-1" />
+              <span className="text-3xl font-bold text-indigo-700">{dailyProgress.newToday}</span>
+              <span className="text-xs text-indigo-600 mt-1 text-center">
+                {dailyProgress.hasYesterday ? 'novos (não estavam ontem)' : 'registros hoje'}
+              </span>
+            </div>
+            <div className="flex flex-col items-center p-4 rounded-lg bg-green-50 border border-green-100">
+              <ArrowUp size={20} className="text-green-500 mb-1" />
+              <span className="text-3xl font-bold text-green-700">{dailyProgress.improved}</span>
+              <span className="text-xs text-green-600 mt-1 text-center">melhoraram o status</span>
+            </div>
+            <div className="flex flex-col items-center p-4 rounded-lg bg-gray-50 border border-gray-200">
+              <Minus size={20} className="text-gray-400 mb-1" />
+              <span className="text-3xl font-bold text-gray-600">{dailyProgress.unchanged}</span>
+              <span className="text-xs text-gray-500 mt-1 text-center">sem mudança</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6 flex items-center justify-between border border-gray-200">
@@ -274,6 +377,73 @@ export function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Funil & Social — from ops_metrics (visible when admin has filled it in) */}
+      {teamOps && (teamOps.funilLeads > 0 || teamOps.postsSemanais !== null) && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {teamOps.funilLeads > 0 && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-xl font-semibold mb-4 text-gray-700">Funil Comercial</h3>
+              <div className="space-y-3">
+                {[
+                  { label: 'Leads', value: teamOps.funilLeads },
+                  { label: 'Reuniões', value: teamOps.funilReunioes },
+                  { label: 'Propostas', value: teamOps.funilPropostas },
+                  { label: 'Contratos', value: teamOps.funilContratos },
+                ].map(({ label, value }, i, arr) => {
+                  const pct = arr[0].value > 0 ? Math.round((value / arr[0].value) * 100) : 0;
+                  return (
+                    <div key={label}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">{label}</span>
+                        <span className="font-semibold">{value}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(teamOps.postsSemanais !== null || teamOps.engajamentoIG !== null || teamOps.taxaAberturaEmail !== null) && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-xl font-semibold mb-4 text-gray-700">Social & Email</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {teamOps.postsSemanais !== null && (
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-800">{teamOps.postsSemanais}</div>
+                    <div className="text-xs text-gray-500 mt-1">posts/semana</div>
+                  </div>
+                )}
+                {teamOps.engajamentoIG !== null && (
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-800">{teamOps.engajamentoIG}%</div>
+                    <div className="text-xs text-gray-500 mt-1">engaj. Instagram</div>
+                  </div>
+                )}
+                {teamOps.taxaAberturaEmail !== null && (
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-800">{teamOps.taxaAberturaEmail}%</div>
+                    <div className="text-xs text-gray-500 mt-1">abertura email</div>
+                  </div>
+                )}
+                {teamOps.taxaCliqueEmail !== null && (
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-800">{teamOps.taxaCliqueEmail}%</div>
+                    <div className="text-xs text-gray-500 mt-1">clique email</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Critérios */}
       <div className="bg-white rounded-lg shadow-md p-6">

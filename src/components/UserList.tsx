@@ -12,6 +12,7 @@ interface UserWithOnboarding extends Onboarding {
       tier: string | null;
       updated_at?: string | null;
     }> | null;
+    outreach?: Array<{ id: string }> | null;
   }) | null;
 }
 
@@ -40,7 +41,8 @@ export function UserList({ onSelectUser }: UserListProps) {
           *,
           users (
             *,
-            athlete_commercial_scores ( total_score, tier, updated_at )
+            athlete_commercial_scores ( total_score, tier, updated_at ),
+            outreach ( id )
           )
         `
         )
@@ -287,6 +289,7 @@ export function UserList({ onSelectUser }: UserListProps) {
 
             const isAthlete = user.profile_kind === 'athlete';
             const { score, tier } = isAthlete ? getCommercial(user) : { score: null, tier: null };
+            const outreachCount = user.users?.outreach?.length ?? 0;
 
             return (
               <div
@@ -306,6 +309,13 @@ export function UserList({ onSelectUser }: UserListProps) {
                   </div>
 
                   <div className="flex items-center gap-3 flex-shrink-0">
+                    {/* Outreach indicator */}
+                    {outreachCount > 0 && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        contactado {outreachCount}×
+                      </span>
+                    )}
+
                     {/* Score Comercial (somente atletas) */}
                     {isAthlete && (
                       <div className="hidden md:flex items-center gap-2">

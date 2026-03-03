@@ -221,10 +221,33 @@ export function OpsDashboard() {
     const loadAll = async () => {
       const month = defaultMonth();
 
-      const [metricsRes, investorsRes] = await Promise.all([
+      const [metricsRes, investorsRes, athleteRes, partnerRes] = await Promise.all([
         db.from('ops_metrics').select('*').eq('month', month).maybeSingle(),
         db.from('ops_investors').select('*').order('sort_order'),
+        supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'athlete'),
+        supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'partner'),
       ]);
+
+      // Auto-derived fields — always reflect live DB state
+      const countByStatus = (data: { completion_status: string }[] | null) => {
+        const counts: Record<string, number> = {};
+        (data || []).forEach((item) => {
+          const s = item.completion_status || 'unknown';
+          counts[s] = (counts[s] || 0) + 1;
+        });
+        return counts;
+      };
+      const athleteCounts = countByStatus(athleteRes.data);
+      const partnerCounts = countByStatus(partnerRes.data);
+      const totalAthletes = (athleteRes as any).count ?? (athleteRes.data?.length ?? 0);
+      const totalPartners = (partnerRes as any).count ?? (partnerRes.data?.length ?? 0);
+      const liveOnboarding = {
+        atletasTotal: String(totalAthletes),
+        atletasAcceptable: String(athleteCounts['acceptable'] || 0),
+        atletasComplete: String(athleteCounts['complete'] || 0),
+        empresasTotal: String(totalPartners),
+        empresasAcceptable: String(partnerCounts['acceptable'] || 0),
+      };
 
       if (metricsRes.data) {
         const d = metricsRes.data;
@@ -232,13 +255,11 @@ export function OpsDashboard() {
           month: d.month,
           statusGeral: d.status_geral,
           fraseFoco: d.frase_foco || '',
-          atletasTotal: String(d.atletas_total || ''),
+          // live auto-populated (override saved values)
+          ...liveOnboarding,
+          // manually entered fields kept from saved row
           atletasNovos: String(d.atletas_novos || ''),
-          atletasAcceptable: String(d.atletas_acceptable || ''),
-          atletasComplete: String(d.atletas_complete || ''),
-          empresasTotal: String(d.empresas_total || ''),
           empresasNovas: String(d.empresas_novas || ''),
-          empresasAcceptable: String(d.empresas_acceptable || ''),
           oportunidadesCriadas: String(d.oportunidades_criadas || ''),
           funilLeads: String(d.funil_leads || ''),
           funilReunioes: String(d.funil_reunioes || ''),
@@ -265,6 +286,9 @@ export function OpsDashboard() {
           comoAjudar: d.como_ajudar || '',
         });
         if (d.report_text) setReport(d.report_text);
+      } else {
+        // No saved row yet — start with live onboarding counts pre-filled
+        setMetrics({ ...emptyMetrics(), ...liveOnboarding });
       }
 
       if (investorsRes.data && investorsRes.data.length > 0) {
