@@ -3,11 +3,12 @@ import { useAuth } from './hooks/useAuth';
 import { useRole } from './hooks/useRole';
 
 import { CSVImport } from './components/CSVImport';
-import { Dashboard } from './components/Dashboard';
+import { TeamDashboard } from './components/TeamDashboard';
 import { UserList } from './components/UserList';
 import { UserDetail } from './components/UserDetail';
 import { Auth } from './components/Auth';
 import { OpsDashboard } from './components/OpsDashboard';
+import type { UserListFilters } from './components/UserList';
 
 import { FileSpreadsheet, LayoutDashboard, Users, LogOut, BarChart3 } from 'lucide-react';
 import type { View } from './types/common';
@@ -19,10 +20,16 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('import');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [userListFilters, setUserListFilters] = useState<UserListFilters>({
+    profileKindFilter: 'all',
+    statusFilter: 'all',
+    searchTerm: '',
+    missingFieldFilter: '',
+  });
 
   const handleImportComplete = () => {
     setRefreshKey((prev) => prev + 1);
-    setCurrentView('dashboard');
+    setCurrentView('team');
   };
 
   const handleSelectUser = (userId: string) => {
@@ -89,15 +96,15 @@ function App() {
             </button>
 
             <button
-              onClick={() => setCurrentView('dashboard')}
+              onClick={() => setCurrentView('team')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
-                currentView === 'dashboard'
+                currentView === 'team'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
               <LayoutDashboard size={20} />
-              Dashboard
+              Team
             </button>
 
             <button
@@ -131,8 +138,14 @@ function App() {
 
       <main className={currentView === 'ops' ? '' : 'max-w-7xl mx-auto px-4 py-8'}>
         {currentView === 'import' && <CSVImport onImportComplete={handleImportComplete} />}
-        {currentView === 'dashboard' && <Dashboard key={refreshKey} />}
-        {currentView === 'list' && <UserList onSelectUser={handleSelectUser} />}
+        {currentView === 'team' && <TeamDashboard key={refreshKey} />}
+        {currentView === 'list' && (
+          <UserList
+            onSelectUser={handleSelectUser}
+            filters={userListFilters}
+            onFiltersChange={setUserListFilters}
+          />
+        )}
         {currentView === 'detail' && selectedUserId && (
           <UserDetail userId={selectedUserId} onBack={handleBackToList} />
         )}

@@ -16,16 +16,31 @@ interface UserWithOnboarding extends Onboarding {
   }) | null;
 }
 
-interface UserListProps {
-  onSelectUser: (userId: string) => void;
+export interface UserListFilters {
+  profileKindFilter: string;
+  statusFilter: string;
+  searchTerm: string;
+  missingFieldFilter: string;
 }
 
-export function UserList({ onSelectUser }: UserListProps) {
+interface UserListProps {
+  onSelectUser: (userId: string) => void;
+  filters: UserListFilters;
+  onFiltersChange: (filters: UserListFilters) => void;
+}
+
+const MUST_HAVE_FIELDS = [
+  'foto', 'bio', 'modalidade', 'nivel', 'estado', 'cidade', 'telefone',
+  'instagram', 'achievements', 'activations', 'causes', 'education', 'media', 'results',
+];
+
+const NICE_TO_HAVE_FIELDS = [
+  'ranking', 'partners', 'social_actions', 'youtube', 'tiktok', 'linkedin', 'talks_mentorship',
+];
+
+export function UserList({ onSelectUser, filters, onFiltersChange }: UserListProps) {
   const [users, setUsers] = useState<UserWithOnboarding[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profileKindFilter, setProfileKindFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -57,29 +72,35 @@ export function UserList({ onSelectUser }: UserListProps) {
     }
   };
 
+  const setFilter = (partial: Partial<UserListFilters>) =>
+    onFiltersChange({ ...filters, ...partial });
+
   const filteredUsers = users.filter((user) => {
-    const matchesProfileKind = profileKindFilter === 'all' || user.profile_kind === profileKindFilter;
-    const matchesStatus = statusFilter === 'all' || user.completion_status === statusFilter;
+    const matchesProfileKind =
+      filters.profileKindFilter === 'all' || user.profile_kind === filters.profileKindFilter;
+    const matchesStatus =
+      filters.statusFilter === 'all' || user.completion_status === filters.statusFilter;
 
     const email = (user.users?.email || '').toLowerCase();
     const name = (user.users?.full_name || '').toLowerCase();
-    const term = searchTerm.toLowerCase();
+    const term = filters.searchTerm.toLowerCase();
+    const matchesSearch = !filters.searchTerm || email.includes(term) || name.includes(term);
 
-    const matchesSearch = !searchTerm || email.includes(term) || name.includes(term);
+    const matchesTag =
+      !filters.missingFieldFilter ||
+      normalizeMissingFields(user.missing_fields)
+        .map((f) => f.replace(/^must:|^nice:/, ''))
+        .includes(filters.missingFieldFilter);
 
-    return matchesProfileKind && matchesStatus && matchesSearch;
+    return matchesProfileKind && matchesStatus && matchesSearch && matchesTag;
   });
 
   const getProfileKindBadge = (kind: string) => {
     switch (kind) {
-      case 'athlete':
-        return 'bg-purple-100 text-purple-800';
-      case 'partner':
-        return 'bg-teal-100 text-teal-800';
-      case 'account':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'athlete': return 'bg-purple-100 text-purple-800';
+      case 'partner': return 'bg-teal-100 text-teal-800';
+      case 'account': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -88,14 +109,10 @@ export function UserList({ onSelectUser }: UserListProps) {
     return kind;
   };
 
-  // ---------- Score helpers ----------
   const getCommercial = (u: UserWithOnboarding) => {
     const arr = u.users?.athlete_commercial_scores || [];
-    // esperando 1 registro por user, mas se vier array, pega o primeiro
     const row = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
-    const score = row?.total_score ?? null;
-    const tier = row?.tier ?? null;
-    return { score, tier };
+    return { score: row?.total_score ?? null, tier: row?.tier ?? null };
   };
 
   const tierBadge = (tier: string) => {
@@ -107,102 +124,41 @@ export function UserList({ onSelectUser }: UserListProps) {
   };
 
   const exportToCSV = () => {
-    // Define all possible must-have and nice-to-have fields
-    const mustHaveFields = [
-      'foto',
-      'bio',
-      'modalidade',
-      'nivel',
-      'estado',
-      'cidade',
-      'telefone',
-      'instagram',
-      'achievements',
-      'activations',
-      'causes',
-      'education',
-      'media',
-      'results',
-    ];
-
-    const niceToHaveFields = [
-      'ranking',
-      'partners',
-      'social_actions',
-      'youtube',
-      'tiktok',
-      'linkedin',
-      'talks_mentorship',
-    ];
+    const mustHaveFields = MUST_HAVE_FIELDS;
+    const niceToHaveFields = NICE_TO_HAVE_FIELDS;
 
     const headers = [
-      'Full Name',
-      'Email',
-      'Profile Kind',
-      'Entity Type',
-      'Completion Status',
-      'Completion Score (%)',
-      'Commercial Score',
-      'Tier',
-      'Created At',
-      'Updated At',
-      '',
-      '--- MUST-HAVE FIELDS ---',
-      ...mustHaveFields,
-      '',
-      '--- NICE-TO-HAVE FIELDS ---',
-      ...niceToHaveFields,
+      'Full Name', 'Email', 'Profile Kind', 'Entity Type', 'Completion Status',
+      'Completion Score (%)', 'Commercial Score', 'Tier', 'Created At', 'Updated At',
+      '', '--- MUST-HAVE FIELDS ---', ...mustHaveFields,
+      '', '--- NICE-TO-HAVE FIELDS ---', ...niceToHaveFields,
     ];
 
     const data = filteredUsers.map((user) => {
       const { score, tier } = user.profile_kind === 'athlete' ? getCommercial(user) : { score: null, tier: null };
       const missing = normalizeMissingFields(user.missing_fields);
-
-      // Create a set of missing fields (without prefix)
       const missingSet = new Set(missing.map((field) => field.replace(/^must:|^nice:/, '')));
-
-      // For each field, check if it's missing (1 = missing, 0 = filled)
-      const mustHaveStatus = mustHaveFields.map((field) => {
-        const isMissing = missingSet.has(field);
-        return isMissing ? 'Missing' : 'Filled';
-      });
-
-      const niceToHaveStatus = niceToHaveFields.map((field) => {
-        const isMissing = missingSet.has(field);
-        return isMissing ? 'Missing' : 'Filled';
-      });
+      const mustHaveStatus = mustHaveFields.map((field) => (missingSet.has(field) ? 'Missing' : 'Filled'));
+      const niceToHaveStatus = niceToHaveFields.map((field) => (missingSet.has(field) ? 'Missing' : 'Filled'));
 
       return [
-        user.users?.full_name || '',
-        user.users?.email || '',
-        user.profile_kind || '',
-        user.entity_type || '',
-        user.completion_status || '',
-        user.completion_score || '',
-        score ?? '',
-        tier ?? '',
-        new Date(user.created_at).toLocaleString(),
-        new Date(user.updated_at).toLocaleString(),
-        '',
-        '',
-        ...mustHaveStatus,
-        '',
-        '',
-        ...niceToHaveStatus,
+        user.users?.full_name || '', user.users?.email || '', user.profile_kind || '',
+        user.entity_type || '', user.completion_status || '', user.completion_score || '',
+        score ?? '', tier ?? '',
+        new Date(user.created_at).toLocaleString(), new Date(user.updated_at).toLocaleString(),
+        '', '', ...mustHaveStatus, '', '', ...niceToHaveStatus,
       ];
     });
 
     const csvContent = [
       headers.join(','),
       ...data.map((row) =>
-        row
-          .map((cell) => {
-            const cellStr = String(cell ?? '');
-            return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')
-              ? `"${cellStr.replace(/"/g, '""')}"`
-              : cellStr;
-          })
-          .join(',')
+        row.map((cell) => {
+          const cellStr = String(cell ?? '');
+          return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')
+            ? `"${cellStr.replace(/"/g, '""')}"`
+            : cellStr;
+        }).join(',')
       ),
     ].join('\n');
 
@@ -235,23 +191,23 @@ export function UserList({ onSelectUser }: UserListProps) {
         </button>
       </div>
 
-      <div className="mb-6 space-y-4">
+      <div className="mb-6 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
             placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.searchTerm}
+            onChange={(e) => setFilter({ searchTerm: e.target.value })}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
           />
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
           <select
-            value={profileKindFilter}
-            onChange={(e) => setProfileKindFilter(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md"
+            value={filters.profileKindFilter}
+            onChange={(e) => setFilter({ profileKindFilter: e.target.value })}
+            className="flex-1 min-w-[130px] px-4 py-2 border border-gray-300 rounded-md"
           >
             <option value="all">All Types</option>
             <option value="athlete">Athletes</option>
@@ -260,9 +216,9 @@ export function UserList({ onSelectUser }: UserListProps) {
           </select>
 
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md"
+            value={filters.statusFilter}
+            onChange={(e) => setFilter({ statusFilter: e.target.value })}
+            className="flex-1 min-w-[130px] px-4 py-2 border border-gray-300 rounded-md"
           >
             <option value="all">All Statuses</option>
             <option value="stalled">Stalled</option>
@@ -270,6 +226,24 @@ export function UserList({ onSelectUser }: UserListProps) {
             <option value="almost">Almost</option>
             <option value="acceptable">Acceptable</option>
             <option value="complete">Complete</option>
+          </select>
+
+          <select
+            value={filters.missingFieldFilter}
+            onChange={(e) => setFilter({ missingFieldFilter: e.target.value })}
+            className="flex-1 min-w-[160px] px-4 py-2 border border-gray-300 rounded-md"
+          >
+            <option value="">All Fields</option>
+            <optgroup label="Must-have">
+              {MUST_HAVE_FIELDS.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Nice-to-have">
+              {NICE_TO_HAVE_FIELDS.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </optgroup>
           </select>
         </div>
       </div>
@@ -280,13 +254,9 @@ export function UserList({ onSelectUser }: UserListProps) {
         ) : (
           filteredUsers.map((user) => {
             const missing = normalizeMissingFields((user as any).missing_fields);
-
-            // Only hide missing when truly complete (must+nice).
             const showMissing = user.completion_status !== 'complete' && missing.length > 0;
-
             const preview = missing.slice(0, 3);
             const rest = missing.length - preview.length;
-
             const isAthlete = user.profile_kind === 'athlete';
             const { score, tier } = isAthlete ? getCommercial(user) : { score: null, tier: null };
             const outreachCount = user.users?.outreach?.length ?? 0;
@@ -309,29 +279,24 @@ export function UserList({ onSelectUser }: UserListProps) {
                   </div>
 
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    {/* Outreach indicator */}
                     {outreachCount > 0 && (
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                         contactado {outreachCount}×
                       </span>
                     )}
 
-                    {/* Score Comercial (somente atletas) */}
                     {isAthlete && (
                       <div className="hidden md:flex items-center gap-2">
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
                           <Award size={14} />
                           <span className="font-medium">{score ?? '—'}</span>
                         </span>
-
                         {tier ? (
                           <span className={`px-2 py-1 rounded-md text-xs font-medium ${tierBadge(tier)}`}>
                             {tier}
                           </span>
                         ) : (
-                          <span className="px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-600">
-                            sem tier
-                          </span>
+                          <span className="px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-600">sem tier</span>
                         )}
                       </div>
                     )}
