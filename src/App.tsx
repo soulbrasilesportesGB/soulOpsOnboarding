@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
+import { useRole } from './hooks/useRole';
 
 import { CSVImport } from './components/CSVImport';
 import { Dashboard } from './components/Dashboard';
 import { UserList } from './components/UserList';
 import { UserDetail } from './components/UserDetail';
 import { Auth } from './components/Auth';
+import { OpsDashboard } from './components/OpsDashboard';
 
-import { FileSpreadsheet, LayoutDashboard, Users, LogOut } from 'lucide-react';
+import { FileSpreadsheet, LayoutDashboard, Users, LogOut, BarChart3 } from 'lucide-react';
 import type { View } from './types/common';
 
 function App() {
   const { session, loading: authLoading, signOut } = useAuth();
+  const role = useRole();
 
   const [currentView, setCurrentView] = useState<View>('import');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -108,17 +111,32 @@ function App() {
               <Users size={20} />
               Users
             </button>
+
+            {role === 'admin' && (
+              <button
+                onClick={() => setCurrentView('ops')}
+                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
+                  currentView === 'ops'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <BarChart3 size={20} />
+                Ops
+              </button>
+            )}
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className={currentView === 'ops' ? '' : 'max-w-7xl mx-auto px-4 py-8'}>
         {currentView === 'import' && <CSVImport onImportComplete={handleImportComplete} />}
         {currentView === 'dashboard' && <Dashboard key={refreshKey} />}
         {currentView === 'list' && <UserList onSelectUser={handleSelectUser} />}
         {currentView === 'detail' && selectedUserId && (
           <UserDetail userId={selectedUserId} onBack={handleBackToList} />
         )}
+        {currentView === 'ops' && role === 'admin' && <OpsDashboard />}
       </main>
     </div>
   );

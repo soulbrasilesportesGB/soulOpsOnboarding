@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 
 // Views
-export type View = 'import' | 'dashboard' | 'list' | 'detail';
+export type View = 'import' | 'dashboard' | 'list' | 'detail' | 'ops';
 
 // Status and Messages
 export type StatusType = 'success' | 'error' | null;
