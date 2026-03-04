@@ -136,7 +136,17 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
           {onboardingRecords.length === 0 ? (
             <p className="text-gray-500">No onboarding records</p>
           ) : (
-            onboardingRecords.map((record: any) => {
+            (() => {
+              const PROFILE_KIND_PRIORITY: Record<string, number> = { athlete: 2, partner: 1, account: 0 };
+              const best = onboardingRecords.reduce((acc: any, record: any) => {
+                if (!acc) return record;
+                const pNew = PROFILE_KIND_PRIORITY[record.profile_kind] ?? -1;
+                const pOld = PROFILE_KIND_PRIORITY[acc.profile_kind] ?? -1;
+                if (pNew > pOld || (pNew === pOld && (record.completion_score ?? 0) > (acc.completion_score ?? 0))) return record;
+                return acc;
+              }, null);
+              return [best];
+            })().map((record: any) => {
               const missing = normalizeMissingFields(record.missing_fields);
 
               const mustMissing = missing
