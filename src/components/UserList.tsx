@@ -64,7 +64,27 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUsers((data as unknown as UserWithOnboarding[]) || []);
+
+      const PROFILE_KIND_PRIORITY: Record<string, number> = { athlete: 2, partner: 1, account: 0 };
+      const deduped = Object.values(
+        ((data as unknown as UserWithOnboarding[]) || []).reduce<Record<string, UserWithOnboarding>>(
+          (acc, row) => {
+            const existing = acc[row.user_id];
+            if (!existing) { acc[row.user_id] = row; return acc; }
+            const priorityNew = PROFILE_KIND_PRIORITY[row.profile_kind] ?? -1;
+            const priorityOld = PROFILE_KIND_PRIORITY[existing.profile_kind] ?? -1;
+            if (
+              priorityNew > priorityOld ||
+              (priorityNew === priorityOld && (row.completion_score ?? 0) > (existing.completion_score ?? 0))
+            ) {
+              acc[row.user_id] = row;
+            }
+            return acc;
+          },
+          {}
+        )
+      );
+      setUsers(deduped);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
