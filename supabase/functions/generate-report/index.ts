@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (user.user_metadata?.role !== 'admin') {
+    if (user.app_metadata?.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
