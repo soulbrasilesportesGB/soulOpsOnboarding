@@ -4,20 +4,6 @@ import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Papa from 'papaparse';
 import { ACTIVATION_TALK_MENTOR_ID, ACTIVATION_BRAND_EVENT_IDS } from '../constants/activationIds';
-import {
-  calcAthleteMustBase,
-  calcAthleteMustCards,
-  calcAthleteNice,
-  calcCompanyCompletion,
-  calcP1Performance,
-  calcP2Narrative,
-  calcP3Maturity,
-  calcP4Activation,
-  calcP5Fit,
-  tierFromTotal,
-} from '../lib/csvValidation';
-import { parseCSVText, countByField, buildActivationTypeSetByAthleteId } from '../lib/csvParser';
-import { isFilled, hasValue, isEmptyArrayLike, pick, normalizeMissingFields } from '../lib/utils';
 import type { StatusType, CompletionStatus } from '../types/common';
 
 interface CSVImportProps {
@@ -545,9 +531,14 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
         const hasCompanyRow = !!companyByUserId[userId];
 
         if (!hasAthleteRow && !hasCompanyRow) {
+          // Use role to correctly classify stalled users — never lose them as 'account'
+          const stalledKind =
+            role === 'athlete' ? 'athlete' :
+            role === 'company' ? 'partner' :
+            'account';
           onboardingRecords.push({
             user_id: userId,
-            profile_kind: 'account',
+            profile_kind: stalledKind,
             entity_type: null,
             completion_status: 'stalled',
             completion_score: 0,
@@ -613,6 +604,35 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
             });
           }
         }
+      }
+
+      // Enforce one profile_kind per user: delete any conflicting records from previous imports.
+      // Covers: 'account' stalled (old bug), and role changes (athlete→company or vice-versa).
+      const athleteUserIds = onboardingRecords.filter((r) => r.profile_kind === 'athlete').map((r) => r.user_id);
+      const partnerUserIds = onboardingRecords.filter((r) => r.profile_kind === 'partner').map((r) => r.user_id);
+
+      await Promise.all([
+        // Athletes: delete any partner or account records they might have had before
+        athleteUserIds.length > 0
+          ? (supabase.from('onboarding') as any).delete().in('profile_kind', ['partner', 'account']).in('user_id', athleteUserIds)
+          : Promise.resolve(),
+        // Partners: delete any athlete or account records they might have had before
+        partnerUserIds.length > 0
+          ? (supabase.from('onboarding') as any).delete().in('profile_kind', ['athlete', 'account']).in('user_id', partnerUserIds)
+          : Promise.resolve(),
+      ]);
+
+      // Global dedup: remove any 'account' record for users who also have a real profile_kind.
+      // Catches orphaned records from users not present in the current CSV batch.
+      const { data: realKindUsers } = await (supabase.from('onboarding') as any)
+        .select('user_id')
+        .in('profile_kind', ['athlete', 'partner']);
+      const realKindUserIds = (realKindUsers || []).map((r: any) => r.user_id);
+      if (realKindUserIds.length > 0) {
+        await (supabase.from('onboarding') as any)
+          .delete()
+          .eq('profile_kind', 'account')
+          .in('user_id', realKindUserIds);
       }
 
       const { error: onboardingError } = await (supabase

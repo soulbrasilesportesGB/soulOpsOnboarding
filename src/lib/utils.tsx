@@ -25,6 +25,40 @@ export const STATUS_BADGE_COLORS: Record<CompletionStatus | string, string> = {
   stalled: 'bg-red-100 text-red-800',
 };
 
+// Status bar colors (for horizontal progress bars)
+export const STATUS_BAR_COLORS: Record<CompletionStatus | string, string> = {
+  complete:   'bg-green-500',
+  acceptable: 'bg-indigo-400',
+  almost:     'bg-blue-400',
+  incomplete: 'bg-amber-400',
+  stalled:    'bg-red-400',
+};
+
+// Portuguese labels for statuses
+export const STATUS_PT: Record<string, string> = {
+  stalled:    'Parado',
+  incomplete: 'Incompleto',
+  almost:     'Quase lá',
+  acceptable: 'Aceitável',
+  complete:   'Completo',
+};
+
+// Portuguese labels for profile kinds
+export const PROFILE_KIND_PT: Record<string, string> = {
+  athlete: 'Atleta',
+  partner: 'Empresa',
+  account: 'Sem perfil',
+};
+
+// Status criteria for legend/tooltip
+export const STATUS_CRITERIA: { status: CompletionStatus | string; label: string; color: string; desc: string }[] = [
+  { status: 'stalled',    label: 'Parado',     color: 'bg-red-400',    desc: 'Sem dados registrados no perfil' },
+  { status: 'incomplete', label: 'Incompleto', color: 'bg-amber-400',  desc: 'Menos de 80% dos obrigatórios preenchidos' },
+  { status: 'almost',     label: 'Quase lá',   color: 'bg-blue-400',   desc: 'Faltam poucos obrigatórios (≥ 80%)' },
+  { status: 'acceptable', label: 'Aceitável',  color: 'bg-indigo-400', desc: 'Obrigatórios completos, faltam complementares' },
+  { status: 'complete',   label: 'Completo',   color: 'bg-green-500',  desc: 'Todos os campos preenchidos' },
+];
+
 // Get icon component for status (returns React component)
 export const getStatusIcon = (status: string): ReactNode => {
   const iconProps = { size: 24 };

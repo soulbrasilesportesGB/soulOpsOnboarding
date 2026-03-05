@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Search, User as UserIcon, Award, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { normalizeMissingFields, STATUS_BADGE_COLORS } from '../lib/utils';
+import { normalizeMissingFields, STATUS_BADGE_COLORS, STATUS_PT, PROFILE_KIND_PT } from '../lib/utils';
 import type { Onboarding, User as UserType } from '../types/database';
 
 interface UserWithOnboarding extends Onboarding {
@@ -124,10 +124,7 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
     }
   };
 
-  const labelProfileKind = (kind: string) => {
-    if (kind === 'account') return 'no role';
-    return kind;
-  };
+  const labelProfileKind = (kind: string) => PROFILE_KIND_PT[kind] || kind;
 
   const getCommercial = (u: UserWithOnboarding) => {
     const arr = u.users?.athlete_commercial_scores || [];
@@ -194,20 +191,20 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading users...</div>;
+    return <div className="text-center py-8">Carregando...</div>;
   }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">User List</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Lista de Usuários</h2>
         <button
           onClick={exportToCSV}
           disabled={filteredUsers.length === 0}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
         >
           <Download size={18} />
-          Export to CSV
+          Exportar CSV
         </button>
       </div>
 
@@ -216,7 +213,7 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Buscar por nome ou email..."
             value={filters.searchTerm}
             onChange={(e) => setFilter({ searchTerm: e.target.value })}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
@@ -229,10 +226,10 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
             onChange={(e) => setFilter({ profileKindFilter: e.target.value })}
             className="flex-1 min-w-[130px] px-4 py-2 border border-gray-300 rounded-md"
           >
-            <option value="all">All Types</option>
-            <option value="athlete">Athletes</option>
-            <option value="partner">Partners</option>
-            <option value="account">No role (account)</option>
+            <option value="all">Todos os tipos</option>
+            <option value="athlete">Atletas</option>
+            <option value="partner">Empresas</option>
+            <option value="account">Sem perfil</option>
           </select>
 
           <select
@@ -240,12 +237,12 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
             onChange={(e) => setFilter({ statusFilter: e.target.value })}
             className="flex-1 min-w-[130px] px-4 py-2 border border-gray-300 rounded-md"
           >
-            <option value="all">All Statuses</option>
-            <option value="stalled">Stalled</option>
-            <option value="incomplete">Incomplete</option>
-            <option value="almost">Almost</option>
-            <option value="acceptable">Acceptable</option>
-            <option value="complete">Complete</option>
+            <option value="all">Todos os status</option>
+            <option value="stalled">Parado</option>
+            <option value="incomplete">Incompleto</option>
+            <option value="almost">Quase lá</option>
+            <option value="acceptable">Aceitável</option>
+            <option value="complete">Completo</option>
           </select>
 
           <select
@@ -270,7 +267,7 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
 
       <div className="space-y-3">
         {filteredUsers.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">No users found</p>
+          <p className="text-center text-gray-500 py-8">Nenhum usuário encontrado</p>
         ) : (
           filteredUsers.map((user) => {
             const missing = normalizeMissingFields((user as any).missing_fields);
@@ -329,7 +326,7 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
                     </span>
 
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_BADGE_COLORS[user.completion_status] || STATUS_BADGE_COLORS['incomplete']}`}>
-                      {user.completion_status}
+                      {STATUS_PT[user.completion_status] || user.completion_status}
                     </span>
 
                     <span className="text-sm text-gray-600">{user.completion_score}%</span>

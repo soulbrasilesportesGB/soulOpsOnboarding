@@ -26,6 +26,7 @@ const C = {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 type OpsTab = 'dashboard' | 'inserir' | 'relatório' | 'investidores';
+type DashboardSubTab = 'usuarios' | 'marketing' | 'comercial';
 
 interface Investor {
   id: string;
@@ -205,6 +206,7 @@ const db = supabase as any;
 export function OpsDashboard() {
   const { session } = useAuth();
   const [tab, setTab] = useState<OpsTab>('dashboard');
+  const [dashTab, setDashTab] = useState<DashboardSubTab>('usuarios');
   const [metrics, setMetrics] = useState<Metrics>(emptyMetrics());
   const [investors, setInvestors] = useState<Investor[]>([]);
   const [report, setReport] = useState('');
@@ -612,6 +614,7 @@ Fundadora, Soul Brasil Esportes`;
         {/* ══ TAB: DASHBOARD ════════════════════════════════════════════════ */}
         {tab === 'dashboard' && (
           <>
+            {/* Header card — sempre visível */}
             <div style={{ ...s.card, marginBottom: 24, borderColor: C.accent + '40' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
@@ -628,64 +631,103 @@ Fundadora, Soul Brasil Esportes`;
               </div>
             </div>
 
-            <div style={s.section}>
-              <div style={s.sectionTitle}><span>Financeiro</span><div style={s.sectionLine} /></div>
-              <div style={s.grid(4)}>
-                <MetricCard label="Receita Total" value={`R$ ${receitaTotal.toLocaleString('pt-BR')}`} sub={`Programa: R$${metrics.receitaPrograma || 0} · Aporte: R$${metrics.receitaAporte || 0}`} accent={C.accent} />
-                <MetricCard label="Despesas" value={`R$ ${parseInt(metrics.despesas || '0').toLocaleString('pt-BR')}`} />
-                <MetricCard label="Caixa Atual" value={`R$ ${parseInt(metrics.caixa || '0').toLocaleString('pt-BR')}`} />
-                <MetricCard label="Runway" value={`${metrics.runway || '?'} meses`} accent={parseInt(metrics.runway) <= 3 ? C.danger : parseInt(metrics.runway) <= 6 ? C.warn : C.accent} />
-              </div>
+            {/* Sub-abas */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
+              {([
+                { key: 'usuarios', label: 'Usuários' },
+                { key: 'marketing', label: 'Marketing' },
+                { key: 'comercial', label: 'Comercial' },
+              ] as { key: DashboardSubTab; label: string }[]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setDashTab(key)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: dashTab === key ? `2px solid ${C.accent}` : '2px solid transparent',
+                    color: dashTab === key ? C.accent : C.textMid,
+                    fontSize: 12,
+                    fontWeight: dashTab === key ? 700 : 400,
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    marginBottom: -1,
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div style={s.section}>
-              <div style={s.sectionTitle}><span>Funil Comercial</span><div style={s.sectionLine} /></div>
-              <div style={{ ...s.card, padding: '20px 24px' }}>
-                <FunnelBar label="Leads qualificados" value={parseInt(metrics.funilLeads) || 0} max={funilMax} color={C.accent} />
-                <FunnelBar label="Reuniões realizadas" value={parseInt(metrics.funilReunioes) || 0} max={funilMax} color="#00B880" />
-                <FunnelBar label="Propostas enviadas" value={parseInt(metrics.funilPropostas) || 0} max={funilMax} color={C.warn} />
-                <FunnelBar label="Contratos fechados" value={parseInt(metrics.funilContratos) || 0} max={funilMax} color={C.danger} />
-                {metrics.cicloMedioVenda && (
-                  <div style={{ marginTop: 12, fontSize: 11, color: C.textMid }}>
-                    Ciclo médio de venda: <span style={{ color: C.text, fontWeight: 700 }}>{metrics.cicloMedioVenda} dias</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={s.section}>
-              <div style={s.sectionTitle}><span>Atletas & Empresas</span><div style={s.sectionLine} /></div>
-              <div style={s.grid(2)}>
-                <div style={s.card}>
-                  <div style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: C.textDim, marginBottom: 12 }}>Atletas</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div><div style={s.cardLabel}>Total</div><div style={s.cardValue}>{metrics.atletasTotal || '—'}</div></div>
-                    <div><div style={s.cardLabel}>Novos</div><div style={{ ...s.cardValue, color: C.accent }}>{metrics.atletasNovos || '—'}</div></div>
-                    <div><div style={s.cardLabel}>Acceptable</div><div style={s.cardValue}>{metrics.atletasAcceptable || '—'}</div></div>
-                    <div><div style={s.cardLabel}>Complete</div><div style={{ ...s.cardValue, color: C.accent }}>{metrics.atletasComplete || '—'}</div></div>
-                  </div>
-                </div>
-                <div style={s.card}>
-                  <div style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: C.textDim, marginBottom: 12 }}>Empresas</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div><div style={s.cardLabel}>Total</div><div style={s.cardValue}>{metrics.empresasTotal || '—'}</div></div>
-                    <div><div style={s.cardLabel}>Novas</div><div style={{ ...s.cardValue, color: C.accent }}>{metrics.empresasNovas || '—'}</div></div>
-                    <div><div style={s.cardLabel}>Acceptable</div><div style={s.cardValue}>{metrics.empresasAcceptable || '—'}</div></div>
-                    <div><div style={s.cardLabel}>Oportunidades</div><div style={{ ...s.cardValue, color: C.warn }}>{metrics.oportunidadesCriadas || '—'}</div></div>
+            {/* ── Sub-aba: Usuários ────────────────────────────────────────── */}
+            {dashTab === 'usuarios' && (
+              <>
+                <div style={s.section}>
+                  <div style={s.sectionTitle}><span>Atletas</span><div style={s.sectionLine} /></div>
+                  <div style={s.grid(4)}>
+                    <MetricCard label="Total" value={metrics.atletasTotal || '—'} />
+                    <MetricCard label="Novos" value={metrics.atletasNovos || '—'} accent={C.accent} />
+                    <MetricCard label="Acceptable" value={metrics.atletasAcceptable || '—'} />
+                    <MetricCard label="Complete" value={metrics.atletasComplete || '—'} accent={C.accent} />
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div style={s.section}>
-              <div style={s.sectionTitle}><span>Social & Email — Interno</span><div style={s.sectionLine} /></div>
-              <div style={s.grid(4)}>
-                <MetricCard label="Posts/semana" value={metrics.postsSemanais || '—'} />
-                <MetricCard label="Engaj. IG" value={metrics.engajamentoIG ? `${metrics.engajamentoIG}%` : '—'} />
-                <MetricCard label="Abertura email" value={metrics.taxaAberturaEmail ? `${metrics.taxaAberturaEmail}%` : '—'} />
-                <MetricCard label="Clique email" value={metrics.taxaCliqueEmail ? `${metrics.taxaCliqueEmail}%` : '—'} />
+                <div style={s.section}>
+                  <div style={s.sectionTitle}><span>Empresas</span><div style={s.sectionLine} /></div>
+                  <div style={s.grid(4)}>
+                    <MetricCard label="Total" value={metrics.empresasTotal || '—'} />
+                    <MetricCard label="Novas" value={metrics.empresasNovas || '—'} accent={C.accent} />
+                    <MetricCard label="Acceptable" value={metrics.empresasAcceptable || '—'} />
+                    <MetricCard label="Oportunidades" value={metrics.oportunidadesCriadas || '—'} accent={C.warn} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── Sub-aba: Marketing ───────────────────────────────────────── */}
+            {dashTab === 'marketing' && (
+              <div style={s.section}>
+                <div style={s.sectionTitle}><span>Social & Email</span><div style={s.sectionLine} /></div>
+                <div style={s.grid(4)}>
+                  <MetricCard label="Posts/semana" value={metrics.postsSemanais || '—'} />
+                  <MetricCard label="Engaj. IG" value={metrics.engajamentoIG ? `${metrics.engajamentoIG}%` : '—'} />
+                  <MetricCard label="Abertura email" value={metrics.taxaAberturaEmail ? `${metrics.taxaAberturaEmail}%` : '—'} />
+                  <MetricCard label="Clique email" value={metrics.taxaCliqueEmail ? `${metrics.taxaCliqueEmail}%` : '—'} />
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* ── Sub-aba: Comercial ───────────────────────────────────────── */}
+            {dashTab === 'comercial' && (
+              <>
+                <div style={s.section}>
+                  <div style={s.sectionTitle}><span>Financeiro</span><div style={s.sectionLine} /></div>
+                  <div style={s.grid(4)}>
+                    <MetricCard label="Receita Total" value={`R$ ${receitaTotal.toLocaleString('pt-BR')}`} sub={`Programa: R$${metrics.receitaPrograma || 0} · Aporte: R$${metrics.receitaAporte || 0}`} accent={C.accent} />
+                    <MetricCard label="Despesas" value={`R$ ${parseInt(metrics.despesas || '0').toLocaleString('pt-BR')}`} />
+                    <MetricCard label="Caixa Atual" value={`R$ ${parseInt(metrics.caixa || '0').toLocaleString('pt-BR')}`} />
+                    <MetricCard label="Runway" value={`${metrics.runway || '?'} meses`} accent={parseInt(metrics.runway) <= 3 ? C.danger : parseInt(metrics.runway) <= 6 ? C.warn : C.accent} />
+                  </div>
+                </div>
+
+                <div style={s.section}>
+                  <div style={s.sectionTitle}><span>Funil Comercial</span><div style={s.sectionLine} /></div>
+                  <div style={{ ...s.card, padding: '20px 24px' }}>
+                    <FunnelBar label="Leads qualificados" value={parseInt(metrics.funilLeads) || 0} max={funilMax} color={C.accent} />
+                    <FunnelBar label="Reuniões realizadas" value={parseInt(metrics.funilReunioes) || 0} max={funilMax} color="#00B880" />
+                    <FunnelBar label="Propostas enviadas" value={parseInt(metrics.funilPropostas) || 0} max={funilMax} color={C.warn} />
+                    <FunnelBar label="Contratos fechados" value={parseInt(metrics.funilContratos) || 0} max={funilMax} color={C.danger} />
+                    {metrics.cicloMedioVenda && (
+                      <div style={{ marginTop: 12, fontSize: 11, color: C.textMid }}>
+                        Ciclo médio de venda: <span style={{ color: C.text, fontWeight: 700 }}>{metrics.cicloMedioVenda} dias</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 

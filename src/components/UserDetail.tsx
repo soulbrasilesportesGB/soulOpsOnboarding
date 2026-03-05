@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Calendar, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { normalizeMissingFields } from '../lib/utils';
+import { normalizeMissingFields, STATUS_PT, PROFILE_KIND_PT } from '../lib/utils';
 import type { Onboarding, Outreach, User } from '../types/database';
 
 interface UserDetailProps {
@@ -99,14 +99,14 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
     return d.toLocaleDateString();
   };
 
-  if (loading) return <div className="text-center py-8">Loading user details...</div>;
-  if (!user) return <div className="text-center py-8">User not found</div>;
+  if (loading) return <div className="text-center py-8">Carregando...</div>;
+  if (!user) return <div className="text-center py-8">Usuário não encontrado</div>;
 
   return (
     <div className="space-y-6">
       <button onClick={onBack} className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
         <ArrowLeft size={20} />
-        Back to list
+        Voltar
       </button>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -121,20 +121,20 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-500">Created:</span> <span className="font-medium">{safeDate(user.created_at_portal)}</span>
+            <span className="text-gray-500">Cadastro:</span> <span className="font-medium">{safeDate(user.created_at_portal)}</span>
           </div>
           <div>
-            <span className="text-gray-500">Updated:</span> <span className="font-medium">{safeDate(user.updated_at_portal)}</span>
+            <span className="text-gray-500">Atualização:</span> <span className="font-medium">{safeDate(user.updated_at_portal)}</span>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-semibold mb-4 text-gray-800">Onboarding Status</h3>
+        <h3 className="text-xl font-semibold mb-4 text-gray-800">Status de Onboarding</h3>
 
         <div className="space-y-4">
           {onboardingRecords.length === 0 ? (
-            <p className="text-gray-500">No onboarding records</p>
+            <p className="text-gray-500">Sem registros de onboarding</p>
           ) : (
             (() => {
               const PROFILE_KIND_PRIORITY: Record<string, number> = { athlete: 2, partner: 1, account: 0 };
@@ -163,7 +163,7 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${kindBadge(record.profile_kind)}`}>
-                        {record.profile_kind === 'account' ? 'no role' : record.profile_kind}
+                        {PROFILE_KIND_PT[record.profile_kind] || record.profile_kind}
                       </span>
 
                       {record.entity_type && (
@@ -172,36 +172,36 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
                     </div>
 
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusBadge(record.completion_status)}`}>
-                      {record.completion_status}
+                      {STATUS_PT[record.completion_status] || record.completion_status}
                     </span>
                   </div>
 
-                  <div className="text-sm text-gray-600">Completion: {record.completion_score}%</div>
+                  <div className="text-sm text-gray-600">Preenchimento: {record.completion_score}%</div>
 
                   {showMissing && (
                     <div className="mt-3">
-                      <div className="text-sm text-gray-700 font-medium mb-2">Missing fields</div>
+                      <div className="text-sm text-gray-700 font-medium mb-2">Campos faltando</div>
 
-                      <div className="text-sm text-gray-700 font-medium mb-1">Must-have</div>
+                      <div className="text-sm text-gray-700 font-medium mb-1">Obrigatórios</div>
                       {mustMissing.length === 0 ? (
                         <div className="text-sm text-gray-500 mb-3">—</div>
                       ) : (
                         <div className="flex flex-wrap gap-2 mb-3">
                           {mustMissing.map((m: string) => (
-                            <span key={`must-${m}`} className="px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
+                            <span key={`must-${m}`} className="px-2 py-1 rounded-md text-xs bg-red-50 text-red-700 border border-red-200">
                               {m}
                             </span>
                           ))}
                         </div>
                       )}
 
-                      <div className="text-sm text-gray-700 font-medium mb-1">Nice-to-have</div>
+                      <div className="text-sm text-gray-700 font-medium mb-1">Complementares</div>
                       {niceMissing.length === 0 ? (
                         <div className="text-sm text-gray-500">—</div>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {niceMissing.map((m: string) => (
-                            <span key={`nice-${m}`} className="px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
+                            <span key={`nice-${m}`} className="px-2 py-1 rounded-md text-xs bg-amber-50 text-amber-700 border border-amber-200">
                               {m}
                             </span>
                           ))}
@@ -218,29 +218,29 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-800">Outreach History</h3>
+          <h3 className="text-xl font-semibold text-gray-800">Histórico de Contatos</h3>
           <button
             onClick={() => setShowOutreachForm(!showOutreachForm)}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             <Plus size={20} />
-            New Outreach
+            Novo Contato
           </button>
         </div>
 
         {showOutreachForm && (
           <form onSubmit={handleSubmitOutreach} className="mb-6 p-4 border border-gray-200 rounded-lg space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Canal</label>
               <select
                 value={outreachForm.channel}
                 onChange={(e) => setOutreachForm({ ...outreachForm, channel: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 required
               >
-                <option value="">Select channel</option>
+                <option value="">Selecionar canal</option>
                 <option value="email">Email</option>
-                <option value="phone">Phone</option>
+                <option value="phone">Telefone</option>
                 <option value="whatsapp">WhatsApp</option>
                 <option value="instagram">Instagram</option>
                 <option value="linkedin">LinkedIn</option>
@@ -248,29 +248,29 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Outcome</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Resultado</label>
               <input
                 type="text"
                 value={outreachForm.outcome}
                 onChange={(e) => setOutreachForm({ ...outreachForm, outcome: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="e.g., Responded, No answer, Interested"
+                placeholder="Ex: Respondeu, Sem resposta, Interessado"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
               <textarea
                 value={outreachForm.notes}
                 onChange={(e) => setOutreachForm({ ...outreachForm, notes: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 rows={3}
-                placeholder="Additional notes..."
+                placeholder="Observações adicionais..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Next Follow-up</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Próximo contato</label>
               <input
                 type="datetime-local"
                 value={outreachForm.next_followup_at}
@@ -281,14 +281,14 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
 
             <div className="flex gap-2">
               <button type="submit" className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                Save Outreach
+                Salvar
               </button>
               <button
                 type="button"
                 onClick={() => setShowOutreachForm(false)}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300"
               >
-                Cancel
+                Cancelar
               </button>
             </div>
           </form>
@@ -296,7 +296,7 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
 
         <div className="space-y-3">
           {outreachRecords.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No outreach records yet</p>
+            <p className="text-gray-500 text-center py-4">Nenhum contato registrado ainda</p>
           ) : (
             outreachRecords.map((record) => (
               <div key={record.id} className="border border-gray-200 rounded-lg p-4">
@@ -309,14 +309,14 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
                 </div>
                 {record.outcome && (
                   <p className="text-sm text-gray-700 mb-2">
-                    <span className="font-medium">Outcome:</span> {record.outcome}
+                    <span className="font-medium">Resultado:</span> {record.outcome}
                   </p>
                 )}
                 {record.notes && <p className="text-sm text-gray-600 mb-2">{record.notes}</p>}
                 {record.next_followup_at && (
                   <div className="flex items-center gap-2 text-sm text-blue-600">
                     <Calendar size={14} />
-                    Follow-up: {new Date(record.next_followup_at).toLocaleString()}
+                    Próximo contato: {new Date(record.next_followup_at).toLocaleString()}
                   </div>
                 )}
               </div>
