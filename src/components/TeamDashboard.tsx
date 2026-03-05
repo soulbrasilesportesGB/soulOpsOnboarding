@@ -1,7 +1,8 @@
 // src/components/TeamDashboard.tsx
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Users, Award, Handshake, TrendingUp, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
+import { Users, Award, Handshake, TrendingUp, ArrowUp, ArrowDown, Sparkles, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { STATUS_CRITERIA } from '../lib/utils';
+import { useRole, canEditMarketing } from '../hooks/useRole';
 import { supabase } from '../lib/supabase';
 
 interface StatusCount {
@@ -45,6 +46,65 @@ interface TeamOpsMetrics {
   taxaCliqueEmail: number | null;
 }
 
+interface MarketingMetrics {
+  week_start: string;
+  ig_seguidores: number | null;
+  ig_crescimento: number | null;
+  ig_posts: number | null;
+  ig_alcance_medio: number | null;
+  ig_engajamento: number | null;
+  ig_pago_investimento: number | null;
+  ig_pago_impressoes: number | null;
+  ig_pago_cliques: number | null;
+  ig_pago_leads: number | null;
+  li_seguidores: number | null;
+  li_crescimento: number | null;
+  li_posts: number | null;
+  li_impressoes: number | null;
+  li_engajamento: number | null;
+  email_envios: number | null;
+  email_abertura: number | null;
+  email_clique: number | null;
+  email_descadastros: number | null;
+  email_novos_assinantes: number | null;
+}
+
+type MarketingForm = Omit<MarketingMetrics, 'week_start'>;
+
+const EMPTY_MKT_FORM: MarketingForm = {
+  ig_seguidores: null, ig_crescimento: null, ig_posts: null,
+  ig_alcance_medio: null, ig_engajamento: null,
+  ig_pago_investimento: null, ig_pago_impressoes: null,
+  ig_pago_cliques: null, ig_pago_leads: null,
+  li_seguidores: null, li_crescimento: null, li_posts: null,
+  li_impressoes: null, li_engajamento: null,
+  email_envios: null, email_abertura: null, email_clique: null,
+  email_descadastros: null, email_novos_assinantes: null,
+};
+
+function mondayOf(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+function addWeeks(iso: string, n: number): string {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + n * 7);
+  return d.toISOString().split('T')[0];
+}
+
+function weekLabel(weekStart: string): string {
+  const from = new Date(weekStart + 'T12:00:00');
+  const to = new Date(weekStart + 'T12:00:00');
+  to.setDate(to.getDate() + 6);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }).replace('.', '');
+  return `${fmt(from)} – ${fmt(to)} ${from.getFullYear()}`;
+}
+
 const STATUS_ORDER: Record<string, number> = {
   stalled: 0, incomplete: 1, almost: 2, acceptable: 3, complete: 4,
 };
@@ -71,6 +131,7 @@ type TeamDashTab = 'usuarios' | 'marketing' | 'comercial';
 type ProgressionKind = 'all' | 'athlete' | 'partner';
 
 export function TeamDashboard() {
+  const role = useRole();
   const [activeTab, setActiveTab] = useState<TeamDashTab>('usuarios');
   const [athleteCounts, setAthleteCounts] = useState<StatusCount[]>([]);
   const [partnerCounts, setPartnerCounts] = useState<StatusCount[]>([]);
@@ -84,11 +145,61 @@ export function TeamDashboard() {
 
   const [dailyProgress, setDailyProgress] = useState<DailyProgress | null>(null);
   const [progressionLoading, setProgressionLoading] = useState(false);
+
+  // Marketing
+  const [mktWeek, setMktWeek] = useState<string>(mondayOf(new Date()));
+  const [mktData, setMktData] = useState<MarketingMetrics | null>(null);
+  const [mktLoading, setMktLoading] = useState(false);
+  const [mktEditing, setMktEditing] = useState(false);
+  const [mktForm, setMktForm] = useState<MarketingForm>(EMPTY_MKT_FORM);
+  const [mktSaving, setMktSaving] = useState(false);
   const [progressionKind, setProgressionKind] = useState<ProgressionKind>('all');
   const [progressionRange, setProgressionRange] = useState({
     from: daysAgoISO(1),
     to: todayISO(),
   });
+
+  const fetchMarketing = useCallback(async (week: string) => {
+    setMktLoading(true);
+    try {
+      const { data } = await (supabase.from('marketing_metrics') as any)
+        .select('*')
+        .eq('week_start', week)
+        .maybeSingle();
+      setMktData(data || null);
+      if (data) {
+        const { week_start: _w, updated_by: _u, updated_at: _a, ...rest } = data;
+        setMktForm(rest as MarketingForm);
+      } else {
+        setMktForm(EMPTY_MKT_FORM);
+      }
+    } catch (e) {
+      console.error('Error fetching marketing:', e);
+    } finally {
+      setMktLoading(false);
+    }
+  }, []);
+
+  const saveMarketing = useCallback(async () => {
+    setMktSaving(true);
+    try {
+      const payload = {
+        week_start: mktWeek,
+        ...Object.fromEntries(
+          Object.entries(mktForm).map(([k, v]) => [k, v == null ? null : Number(v)])
+        ),
+        updated_by: (await supabase.auth.getUser()).data.user?.email ?? null,
+      };
+      const { error } = await (supabase.from('marketing_metrics') as any).upsert(payload);
+      if (error) throw error;
+      await fetchMarketing(mktWeek);
+      setMktEditing(false);
+    } catch (e) {
+      console.error('Error saving marketing:', e);
+    } finally {
+      setMktSaving(false);
+    }
+  }, [mktWeek, mktForm, fetchMarketing]);
 
   const fetchMain = useCallback(async () => {
     setLoading(true);
@@ -204,6 +315,9 @@ export function TeamDashboard() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchProgression(progressionRange.from, progressionRange.to, progressionKind); }, [progressionRange.from, progressionRange.to, progressionKind]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchMarketing(mktWeek); }, [mktWeek]);
 
   const getCount = (counts: StatusCount[], status: string) =>
     counts.find((c) => c.completion_status === status)?.count || 0;
@@ -469,35 +583,237 @@ export function TeamDashboard() {
       {/* ── Aba: Marketing ──────────────────────────────────────────────── */}
       {activeTab === 'marketing' && <>
 
-      {/* ── Social & Email ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700">Social & Email</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-gray-800">{teamOps?.postsSemanais ?? '—'}</div>
-            <div className="text-xs text-gray-500 mt-1">posts/semana</div>
+      {/* ── Navegação de semana ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setMktWeek(w => addWeeks(w, -1)); setMktEditing(false); }}
+            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition">
+            <ChevronLeft size={18} />
+          </button>
+          <span className="text-sm font-semibold text-gray-700 min-w-[180px] text-center">
+            {weekLabel(mktWeek)}
+          </span>
+          <button
+            onClick={() => { setMktWeek(w => addWeeks(w, 1)); setMktEditing(false); }}
+            disabled={mktWeek >= mondayOf(new Date())}
+            className="p-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition disabled:opacity-30 disabled:cursor-not-allowed">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        {canEditMarketing(role) && !mktEditing && (
+          <button onClick={() => setMktEditing(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+            <Pencil size={14} />
+            {mktData ? 'Editar semana' : 'Adicionar dados'}
+          </button>
+        )}
+      </div>
+
+      {mktLoading ? (
+        <p className="text-sm text-gray-500">Carregando...</p>
+      ) : mktEditing ? (
+        /* ── Formulário de edição ─────────────────────────────────────── */
+        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-700">Dados da semana — {weekLabel(mktWeek)}</h3>
           </div>
-          <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-gray-800">
-              {teamOps?.engajamentoIG != null ? `${teamOps.engajamentoIG}%` : '—'}
+
+          {/* Instagram Orgânico */}
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Instagram — Orgânico</div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {([
+                { key: 'ig_seguidores',    label: 'Seguidores',     placeholder: '12500' },
+                { key: 'ig_crescimento',   label: 'Crescimento',    placeholder: '+120' },
+                { key: 'ig_posts',         label: 'Posts',          placeholder: '5' },
+                { key: 'ig_alcance_medio', label: 'Alcance médio',  placeholder: '3200' },
+                { key: 'ig_engajamento',   label: 'Engajamento (%)', placeholder: '4.2' },
+              ] as const).map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                  <input type="number" placeholder={placeholder}
+                    value={mktForm[key] ?? ''}
+                    onChange={e => setMktForm(f => ({ ...f, [key]: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                </div>
+              ))}
             </div>
-            <div className="text-xs text-gray-500 mt-1">engaj. Instagram</div>
           </div>
-          <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-gray-800">
-              {teamOps?.taxaAberturaEmail != null ? `${teamOps.taxaAberturaEmail}%` : '—'}
+
+          {/* Instagram Pago */}
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Instagram — Pago</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {([
+                { key: 'ig_pago_investimento', label: 'Investimento (R$)', placeholder: '500' },
+                { key: 'ig_pago_impressoes',   label: 'Impressões',        placeholder: '15000' },
+                { key: 'ig_pago_cliques',      label: 'Cliques',           placeholder: '320' },
+                { key: 'ig_pago_leads',        label: 'Leads gerados',     placeholder: '18' },
+              ] as const).map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                  <input type="number" placeholder={placeholder}
+                    value={mktForm[key] ?? ''}
+                    onChange={e => setMktForm(f => ({ ...f, [key]: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                </div>
+              ))}
             </div>
-            <div className="text-xs text-gray-500 mt-1">abertura email</div>
           </div>
-          <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
-            <div className="text-2xl font-bold text-gray-800">
-              {teamOps?.taxaCliqueEmail != null ? `${teamOps.taxaCliqueEmail}%` : '—'}
+
+          {/* LinkedIn */}
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">LinkedIn — Orgânico</div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {([
+                { key: 'li_seguidores',  label: 'Seguidores',      placeholder: '3400' },
+                { key: 'li_crescimento', label: 'Crescimento',     placeholder: '+45' },
+                { key: 'li_posts',       label: 'Posts',           placeholder: '3' },
+                { key: 'li_impressoes',  label: 'Impressões',      placeholder: '8000' },
+                { key: 'li_engajamento', label: 'Engajamento (%)', placeholder: '2.8' },
+              ] as const).map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                  <input type="number" placeholder={placeholder}
+                    value={mktForm[key] ?? ''}
+                    onChange={e => setMktForm(f => ({ ...f, [key]: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                </div>
+              ))}
             </div>
-            <div className="text-xs text-gray-500 mt-1">clique email</div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Email — ActiveCampaign</div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {([
+                { key: 'email_envios',           label: 'Envios',          placeholder: '1200' },
+                { key: 'email_abertura',         label: 'Abertura (%)',    placeholder: '42' },
+                { key: 'email_clique',           label: 'Clique (%)',      placeholder: '8.5' },
+                { key: 'email_descadastros',     label: 'Descadastros (%)', placeholder: '0.3' },
+                { key: 'email_novos_assinantes', label: 'Novos assinantes', placeholder: '25' },
+              ] as const).map(({ key, label, placeholder }) => (
+                <div key={key}>
+                  <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                  <input type="number" placeholder={placeholder}
+                    value={mktForm[key] ?? ''}
+                    onChange={e => setMktForm(f => ({ ...f, [key]: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={saveMarketing} disabled={mktSaving}
+              className="px-5 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition">
+              {mktSaving ? 'Salvando...' : 'Salvar'}
+            </button>
+            <button onClick={() => { setMktEditing(false); if (mktData) { const { week_start: _w, updated_by: _u, updated_at: _a, ...rest } = mktData as any; setMktForm(rest); } else setMktForm(EMPTY_MKT_FORM); }}
+              className="px-5 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition">
+              Cancelar
+            </button>
           </div>
         </div>
-        {noOpsNote}
-      </div>
+      ) : !mktData ? (
+        /* ── Sem dados ──────────────────────────────────────────────────── */
+        <div className="bg-white rounded-lg shadow-md p-10 text-center">
+          <p className="text-gray-500 text-sm">Nenhum dado para esta semana.</p>
+          {canEditMarketing(role) && (
+            <button onClick={() => setMktEditing(true)}
+              className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition">
+              Adicionar dados
+            </button>
+          )}
+        </div>
+      ) : (
+        /* ── Visualização ───────────────────────────────────────────────── */
+        <div className="space-y-4">
+          {/* Instagram orgânico + pago */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg shadow-md p-5">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Instagram — Orgânico</div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Seguidores',     val: mktData.ig_seguidores,    fmt: (v: number) => v.toLocaleString('pt-BR') },
+                  { label: 'Crescimento',    val: mktData.ig_crescimento,   fmt: (v: number) => (v >= 0 ? `+${v}` : String(v)) },
+                  { label: 'Posts',          val: mktData.ig_posts,         fmt: (v: number) => String(v) },
+                  { label: 'Alcance médio',  val: mktData.ig_alcance_medio, fmt: (v: number) => v.toLocaleString('pt-BR') },
+                  { label: 'Engajamento',    val: mktData.ig_engajamento,   fmt: (v: number) => `${v}%` },
+                ].map(({ label, val, fmt }) => (
+                  <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-5">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Instagram — Pago</div>
+              <div className="grid grid-cols-2 gap-3">
+                {(() => {
+                  const cpl = mktData.ig_pago_investimento != null && mktData.ig_pago_leads
+                    ? (mktData.ig_pago_investimento / mktData.ig_pago_leads).toFixed(2)
+                    : null;
+                  return [
+                    { label: 'Investimento',  val: mktData.ig_pago_investimento, fmt: (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
+                    { label: 'Impressões',    val: mktData.ig_pago_impressoes,   fmt: (v: number) => v.toLocaleString('pt-BR') },
+                    { label: 'Cliques',       val: mktData.ig_pago_cliques,      fmt: (v: number) => v.toLocaleString('pt-BR') },
+                    { label: 'Leads gerados', val: mktData.ig_pago_leads,        fmt: (v: number) => String(v) },
+                    { label: 'CPL',           val: cpl,                          fmt: (v: string) => `R$ ${v}` },
+                  ].map(({ label, val, fmt }) => (
+                    <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="text-lg font-bold text-gray-800">{val != null ? (fmt as any)(val) : '—'}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* LinkedIn + Email */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg shadow-md p-5">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">LinkedIn — Orgânico</div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Seguidores',    val: mktData.li_seguidores,  fmt: (v: number) => v.toLocaleString('pt-BR') },
+                  { label: 'Crescimento',   val: mktData.li_crescimento, fmt: (v: number) => (v >= 0 ? `+${v}` : String(v)) },
+                  { label: 'Posts',         val: mktData.li_posts,       fmt: (v: number) => String(v) },
+                  { label: 'Impressões',    val: mktData.li_impressoes,  fmt: (v: number) => v.toLocaleString('pt-BR') },
+                  { label: 'Engajamento',   val: mktData.li_engajamento, fmt: (v: number) => `${v}%` },
+                ].map(({ label, val, fmt }) => (
+                  <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-5">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Email — ActiveCampaign</div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Envios',           val: mktData.email_envios,           fmt: (v: number) => v.toLocaleString('pt-BR') },
+                  { label: 'Abertura',         val: mktData.email_abertura,         fmt: (v: number) => `${v}%` },
+                  { label: 'Clique',           val: mktData.email_clique,           fmt: (v: number) => `${v}%` },
+                  { label: 'Descadastros',     val: mktData.email_descadastros,     fmt: (v: number) => `${v}%` },
+                  { label: 'Novos assinantes', val: mktData.email_novos_assinantes, fmt: (v: number) => String(v) },
+                ].map(({ label, val, fmt }) => (
+                  <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       </> /* fim Marketing */}
 
