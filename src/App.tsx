@@ -24,7 +24,11 @@ function App() {
     profileKindFilter: 'all',
     statusFilter: 'all',
     searchTerm: '',
-    missingFieldFilter: '',
+    missingFieldFilter: [],
+    createdFrom: '',
+    createdTo: '',
+    nextContactFrom: '',
+    nextContactTo: '',
   });
 
   const handleImportComplete = () => {
