@@ -1,6 +1,7 @@
 // src/components/TeamDashboard.tsx
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Users, Award, Handshake, TrendingUp, ArrowUp, ArrowDown, Sparkles, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { STATUS_CRITERIA } from '../lib/utils';
 import { useRole, canEditMarketing } from '../hooks/useRole';
 import { supabase } from '../lib/supabase';
@@ -149,6 +150,8 @@ export function TeamDashboard() {
   // Marketing
   const [mktWeek, setMktWeek] = useState<string>(mondayOf(new Date()));
   const [mktData, setMktData] = useState<MarketingMetrics | null>(null);
+  const [mktPrev, setMktPrev] = useState<MarketingMetrics | null>(null);
+  const [mktHistory, setMktHistory] = useState<MarketingMetrics[]>([]);
   const [mktLoading, setMktLoading] = useState(false);
   const [mktEditing, setMktEditing] = useState(false);
   const [mktForm, setMktForm] = useState<MarketingForm>(EMPTY_MKT_FORM);
@@ -162,13 +165,25 @@ export function TeamDashboard() {
   const fetchMarketing = useCallback(async (week: string) => {
     setMktLoading(true);
     try {
-      const { data } = await (supabase.from('marketing_metrics') as any)
-        .select('*')
-        .eq('week_start', week)
-        .maybeSingle();
-      setMktData(data || null);
-      if (data) {
-        const { week_start: _w, updated_by: _u, updated_at: _a, ...rest } = data;
+      const prevWeek = addWeeks(week, -1);
+      const historyFrom = addWeeks(week, -7); // last 8 weeks including current
+
+      const [currentRes, prevRes, historyRes] = await Promise.all([
+        (supabase.from('marketing_metrics') as any).select('*').eq('week_start', week).maybeSingle(),
+        (supabase.from('marketing_metrics') as any).select('*').eq('week_start', prevWeek).maybeSingle(),
+        (supabase.from('marketing_metrics') as any)
+          .select('*')
+          .gte('week_start', historyFrom)
+          .lte('week_start', week)
+          .order('week_start', { ascending: true }),
+      ]);
+
+      setMktData(currentRes.data || null);
+      setMktPrev(prevRes.data || null);
+      setMktHistory(historyRes.data || []);
+
+      if (currentRes.data) {
+        const { week_start: _w, updated_by: _u, updated_at: _a, ...rest } = currentRes.data;
         setMktForm(rest as MarketingForm);
       } else {
         setMktForm(EMPTY_MKT_FORM);
@@ -729,90 +744,152 @@ export function TeamDashboard() {
         </div>
       ) : (
         /* ── Visualização ───────────────────────────────────────────────── */
-        <div className="space-y-4">
-          {/* Instagram orgânico + pago */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg shadow-md p-5">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Instagram — Orgânico</div>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Seguidores',     val: mktData.ig_seguidores,    fmt: (v: number) => v.toLocaleString('pt-BR') },
-                  { label: 'Crescimento',    val: mktData.ig_crescimento,   fmt: (v: number) => (v >= 0 ? `+${v}` : String(v)) },
-                  { label: 'Posts',          val: mktData.ig_posts,         fmt: (v: number) => String(v) },
-                  { label: 'Alcance médio',  val: mktData.ig_alcance_medio, fmt: (v: number) => v.toLocaleString('pt-BR') },
-                  { label: 'Engajamento',    val: mktData.ig_engajamento,   fmt: (v: number) => `${v}%` },
-                ].map(({ label, val, fmt }) => (
-                  <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        (() => {
+          // Delta helper
+          const delta = (curr: number | null, prev: number | null) => {
+            if (curr == null || prev == null || prev === 0) return null;
+            const d = curr - prev;
+            const pct = ((d / Math.abs(prev)) * 100).toFixed(1);
+            return { d, pct, up: d >= 0 };
+          };
+          const deltaAbs = (curr: number | null, prev: number | null) => {
+            if (curr == null || prev == null) return null;
+            const d = curr - prev;
+            return { d, up: d >= 0 };
+          };
 
-            <div className="bg-white rounded-lg shadow-md p-5">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Instagram — Pago</div>
-              <div className="grid grid-cols-2 gap-3">
-                {(() => {
-                  const cpl = mktData.ig_pago_investimento != null && mktData.ig_pago_leads
-                    ? (mktData.ig_pago_investimento / mktData.ig_pago_leads).toFixed(2)
-                    : null;
-                  return [
-                    { label: 'Investimento',  val: mktData.ig_pago_investimento, fmt: (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
-                    { label: 'Impressões',    val: mktData.ig_pago_impressoes,   fmt: (v: number) => v.toLocaleString('pt-BR') },
-                    { label: 'Cliques',       val: mktData.ig_pago_cliques,      fmt: (v: number) => v.toLocaleString('pt-BR') },
-                    { label: 'Leads gerados', val: mktData.ig_pago_leads,        fmt: (v: number) => String(v) },
-                    { label: 'CPL',           val: cpl,                          fmt: (v: string) => `R$ ${v}` },
-                  ].map(({ label, val, fmt }) => (
-                    <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="text-lg font-bold text-gray-800">{val != null ? (fmt as any)(val) : '—'}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          </div>
+          // Chart data (last 8 weeks)
+          const chartData = mktHistory.map(w => ({
+            week: weekLabel(w.week_start).split('–')[0].trim(),
+            ig_seg: w.ig_seguidores,
+            ig_eng: w.ig_engajamento,
+            ig_leads: w.ig_pago_leads,
+            li_seg: w.li_seguidores,
+            li_eng: w.li_engajamento,
+            email_ab: w.email_abertura,
+          }));
 
-          {/* LinkedIn + Email */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg shadow-md p-5">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">LinkedIn — Orgânico</div>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Seguidores',    val: mktData.li_seguidores,  fmt: (v: number) => v.toLocaleString('pt-BR') },
-                  { label: 'Crescimento',   val: mktData.li_crescimento, fmt: (v: number) => (v >= 0 ? `+${v}` : String(v)) },
-                  { label: 'Posts',         val: mktData.li_posts,       fmt: (v: number) => String(v) },
-                  { label: 'Impressões',    val: mktData.li_impressoes,  fmt: (v: number) => v.toLocaleString('pt-BR') },
-                  { label: 'Engajamento',   val: mktData.li_engajamento, fmt: (v: number) => `${v}%` },
-                ].map(({ label, val, fmt }) => (
-                  <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+          const MetricCard = ({ label, val, fmt, prevVal, isPercent = false }: {
+            label: string; val: number | null; fmt: (v: number) => string;
+            prevVal?: number | null; isPercent?: boolean;
+          }) => {
+            const d = isPercent ? deltaAbs(val, prevVal ?? null) : delta(val, prevVal ?? null);
+            return (
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                {d != null && (
+                  <div className={`flex items-center gap-0.5 text-xs mt-1 font-medium ${d.up ? 'text-green-600' : 'text-red-500'}`}>
+                    {d.up ? <ArrowUp size={11} /> : <ArrowDown size={11} />}
+                    {isPercent
+                      ? `${d.d >= 0 ? '+' : ''}${(d as any).d.toFixed(1)}pp`
+                      : `${(d as any).d >= 0 ? '+' : ''}${(d as any).pct}%`}
                   </div>
-                ))}
+                )}
               </div>
-            </div>
+            );
+          };
 
+          const MiniChart = ({ dataKey, color, label, suffix = '' }: {
+            dataKey: string; color: string; label: string; suffix?: string;
+          }) => (
             <div className="bg-white rounded-lg shadow-md p-5">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Email — ActiveCampaign</div>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Envios',           val: mktData.email_envios,           fmt: (v: number) => v.toLocaleString('pt-BR') },
-                  { label: 'Abertura',         val: mktData.email_abertura,         fmt: (v: number) => `${v}%` },
-                  { label: 'Clique',           val: mktData.email_clique,           fmt: (v: number) => `${v}%` },
-                  { label: 'Descadastros',     val: mktData.email_descadastros,     fmt: (v: number) => `${v}%` },
-                  { label: 'Novos assinantes', val: mktData.email_novos_assinantes, fmt: (v: number) => String(v) },
-                ].map(({ label, val, fmt }) => (
-                  <div key={label} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-lg font-bold text-gray-800">{val != null ? fmt(val) : '—'}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{label}</div>
+              {chartData.length < 2 ? (
+                <p className="text-xs text-gray-400 italic">Dados insuficientes para tendência (mín. 2 semanas)</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={120}>
+                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip
+                      formatter={(v: any) => [`${v}${suffix}`, label]}
+                      labelStyle={{ fontSize: 11 }}
+                      contentStyle={{ fontSize: 11 }}
+                    />
+                    <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          );
+
+          const cpl = mktData.ig_pago_investimento != null && mktData.ig_pago_leads
+            ? (mktData.ig_pago_investimento / mktData.ig_pago_leads).toFixed(2) : null;
+          const prevCpl = mktPrev?.ig_pago_investimento != null && mktPrev?.ig_pago_leads
+            ? mktPrev.ig_pago_investimento / mktPrev.ig_pago_leads : null;
+
+          return (
+            <div className="space-y-4">
+              {/* Métricas da semana */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Instagram orgânico */}
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Instagram — Orgânico</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <MetricCard label="Seguidores"    val={mktData.ig_seguidores}    fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.ig_seguidores} />
+                    <MetricCard label="Crescimento"   val={mktData.ig_crescimento}   fmt={v => v >= 0 ? `+${v}` : String(v)} prevVal={mktPrev?.ig_crescimento} />
+                    <MetricCard label="Posts"         val={mktData.ig_posts}         fmt={v => String(v)}                   prevVal={mktPrev?.ig_posts} />
+                    <MetricCard label="Alcance médio" val={mktData.ig_alcance_medio} fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.ig_alcance_medio} />
+                    <MetricCard label="Engajamento"   val={mktData.ig_engajamento}   fmt={v => `${v}%`}                    prevVal={mktPrev?.ig_engajamento} isPercent />
                   </div>
-                ))}
+                </div>
+
+                {/* Instagram pago */}
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Instagram — Pago</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <MetricCard label="Investimento"  val={mktData.ig_pago_investimento} fmt={v => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} prevVal={mktPrev?.ig_pago_investimento} />
+                    <MetricCard label="Impressões"    val={mktData.ig_pago_impressoes}   fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.ig_pago_impressoes} />
+                    <MetricCard label="Cliques"       val={mktData.ig_pago_cliques}      fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.ig_pago_cliques} />
+                    <MetricCard label="Leads gerados" val={mktData.ig_pago_leads}        fmt={v => String(v)}                 prevVal={mktPrev?.ig_pago_leads} />
+                    <MetricCard label="CPL"           val={cpl != null ? Number(cpl) : null} fmt={v => `R$ ${v.toFixed(2)}`} prevVal={prevCpl} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* LinkedIn */}
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">LinkedIn — Orgânico</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <MetricCard label="Seguidores"  val={mktData.li_seguidores}  fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.li_seguidores} />
+                    <MetricCard label="Crescimento" val={mktData.li_crescimento} fmt={v => v >= 0 ? `+${v}` : String(v)} prevVal={mktPrev?.li_crescimento} />
+                    <MetricCard label="Posts"       val={mktData.li_posts}       fmt={v => String(v)}                   prevVal={mktPrev?.li_posts} />
+                    <MetricCard label="Impressões"  val={mktData.li_impressoes}  fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.li_impressoes} />
+                    <MetricCard label="Engajamento" val={mktData.li_engajamento} fmt={v => `${v}%`}                    prevVal={mktPrev?.li_engajamento} isPercent />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="bg-white rounded-lg shadow-md p-5">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Email — ActiveCampaign</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <MetricCard label="Envios"           val={mktData.email_envios}           fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.email_envios} />
+                    <MetricCard label="Abertura"         val={mktData.email_abertura}         fmt={v => `${v}%`}                   prevVal={mktPrev?.email_abertura} isPercent />
+                    <MetricCard label="Clique"           val={mktData.email_clique}           fmt={v => `${v}%`}                   prevVal={mktPrev?.email_clique} isPercent />
+                    <MetricCard label="Descadastros"     val={mktData.email_descadastros}     fmt={v => `${v}%`}                   prevVal={mktPrev?.email_descadastros} isPercent />
+                    <MetricCard label="Novos assinantes" val={mktData.email_novos_assinantes} fmt={v => String(v)}                 prevVal={mktPrev?.email_novos_assinantes} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Gráficos de tendência */}
+              <div className="pt-2">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Tendência — últimas 8 semanas</div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <MiniChart dataKey="ig_seg"   color="#6366f1" label="IG Seguidores" />
+                  <MiniChart dataKey="ig_eng"   color="#f59e0b" label="IG Engajamento" suffix="%" />
+                  <MiniChart dataKey="ig_leads" color="#10b981" label="IG Leads (pago)" />
+                  <MiniChart dataKey="li_seg"   color="#0ea5e9" label="LI Seguidores" />
+                  <MiniChart dataKey="li_eng"   color="#8b5cf6" label="LI Engajamento" suffix="%" />
+                  <MiniChart dataKey="email_ab" color="#ef4444" label="Email Abertura" suffix="%" />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          );
+        })()
       )}
 
       </> /* fim Marketing */}
