@@ -53,7 +53,7 @@ interface MarketingMetrics {
   ig_crescimento: number | null;
   ig_posts: number | null;
   ig_alcance_medio: number | null;
-  ig_engajamento: number | null;
+  ig_interacoes: number | null;
   ig_pago_investimento: number | null;
   ig_pago_impressoes: number | null;
   ig_pago_cliques: number | null;
@@ -62,7 +62,7 @@ interface MarketingMetrics {
   li_crescimento: number | null;
   li_posts: number | null;
   li_impressoes: number | null;
-  li_engajamento: number | null;
+  li_interacoes: number | null;
   email_envios: number | null;
   email_abertura: number | null;
   email_clique: number | null;
@@ -74,11 +74,11 @@ type MarketingForm = Omit<MarketingMetrics, 'week_start'>;
 
 const EMPTY_MKT_FORM: MarketingForm = {
   ig_seguidores: null, ig_crescimento: null, ig_posts: null,
-  ig_alcance_medio: null, ig_engajamento: null,
+  ig_alcance_medio: null, ig_interacoes: null,
   ig_pago_investimento: null, ig_pago_impressoes: null,
   ig_pago_cliques: null, ig_pago_leads: null,
   li_seguidores: null, li_crescimento: null, li_posts: null,
-  li_impressoes: null, li_engajamento: null,
+  li_impressoes: null, li_interacoes: null,
   email_envios: null, email_abertura: null, email_clique: null,
   email_descadastros: null, email_novos_assinantes: null,
 };
@@ -642,7 +642,7 @@ export function TeamDashboard() {
                 { key: 'ig_crescimento',   label: 'Crescimento',    placeholder: '+120' },
                 { key: 'ig_posts',         label: 'Posts',          placeholder: '5' },
                 { key: 'ig_alcance_medio', label: 'Alcance médio',  placeholder: '3200' },
-                { key: 'ig_engajamento',   label: 'Engajamento (%)', placeholder: '4.2' },
+                { key: 'ig_interacoes',   label: 'Interações',      placeholder: '850' },
               ] as const).map(({ key, label, placeholder }) => (
                 <div key={key}>
                   <label className="block text-xs text-gray-500 mb-1">{label}</label>
@@ -684,8 +684,8 @@ export function TeamDashboard() {
                 { key: 'li_seguidores',  label: 'Seguidores',      placeholder: '3400' },
                 { key: 'li_crescimento', label: 'Crescimento',     placeholder: '+45' },
                 { key: 'li_posts',       label: 'Posts',           placeholder: '3' },
-                { key: 'li_impressoes',  label: 'Impressões',      placeholder: '8000' },
-                { key: 'li_engajamento', label: 'Engajamento (%)', placeholder: '2.8' },
+                { key: 'li_impressoes',  label: 'Impressões',  placeholder: '8000' },
+                { key: 'li_interacoes', label: 'Interações',  placeholder: '220' },
               ] as const).map(({ key, label, placeholder }) => (
                 <div key={key}>
                   <label className="block text-xs text-gray-500 mb-1">{label}</label>
@@ -762,10 +762,10 @@ export function TeamDashboard() {
           const chartData = mktHistory.map(w => ({
             week: weekLabel(w.week_start).split('–')[0].trim(),
             ig_seg: w.ig_seguidores,
-            ig_eng: w.ig_engajamento,
+            ig_int: w.ig_interacoes,
             ig_leads: w.ig_pago_leads,
             li_seg: w.li_seguidores,
-            li_eng: w.li_engajamento,
+            li_int: w.li_interacoes,
             email_ab: w.email_abertura,
           }));
 
@@ -832,7 +832,7 @@ export function TeamDashboard() {
                     <MetricCard label="Crescimento"   val={mktData.ig_crescimento}   fmt={v => v >= 0 ? `+${v}` : String(v)} prevVal={mktPrev?.ig_crescimento} />
                     <MetricCard label="Posts"         val={mktData.ig_posts}         fmt={v => String(v)}                   prevVal={mktPrev?.ig_posts} />
                     <MetricCard label="Alcance médio" val={mktData.ig_alcance_medio} fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.ig_alcance_medio} />
-                    <MetricCard label="Engajamento"   val={mktData.ig_engajamento}   fmt={v => `${v}%`}                    prevVal={mktPrev?.ig_engajamento} isPercent />
+                    <MetricCard label="Interações"    val={mktData.ig_interacoes}    fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.ig_interacoes} />
                   </div>
                 </div>
 
@@ -858,7 +858,7 @@ export function TeamDashboard() {
                     <MetricCard label="Crescimento" val={mktData.li_crescimento} fmt={v => v >= 0 ? `+${v}` : String(v)} prevVal={mktPrev?.li_crescimento} />
                     <MetricCard label="Posts"       val={mktData.li_posts}       fmt={v => String(v)}                   prevVal={mktPrev?.li_posts} />
                     <MetricCard label="Impressões"  val={mktData.li_impressoes}  fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.li_impressoes} />
-                    <MetricCard label="Engajamento" val={mktData.li_engajamento} fmt={v => `${v}%`}                    prevVal={mktPrev?.li_engajamento} isPercent />
+                    <MetricCard label="Interações"  val={mktData.li_interacoes}  fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.li_interacoes} />
                   </div>
                 </div>
 
@@ -880,10 +880,10 @@ export function TeamDashboard() {
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Tendência — últimas 8 semanas</div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <MiniChart dataKey="ig_seg"   color="#6366f1" label="IG Seguidores" />
-                  <MiniChart dataKey="ig_eng"   color="#f59e0b" label="IG Engajamento" suffix="%" />
+                  <MiniChart dataKey="ig_int"   color="#f59e0b" label="IG Interações" />
                   <MiniChart dataKey="ig_leads" color="#10b981" label="IG Leads (pago)" />
                   <MiniChart dataKey="li_seg"   color="#0ea5e9" label="LI Seguidores" />
-                  <MiniChart dataKey="li_eng"   color="#8b5cf6" label="LI Engajamento" suffix="%" />
+                  <MiniChart dataKey="li_int"   color="#8b5cf6" label="LI Interações" />
                   <MiniChart dataKey="email_ab" color="#ef4444" label="Email Abertura" suffix="%" />
                 </div>
               </div>
