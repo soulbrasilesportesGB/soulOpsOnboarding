@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
-import { useRole } from './hooks/useRole';
+import { useRole, canImport, isSuperAdmin } from './hooks/useRole';
 
 import { CSVImport } from './components/CSVImport';
 import { TeamDashboard } from './components/TeamDashboard';
@@ -17,7 +17,7 @@ function App() {
   const { session, loading: authLoading, signOut } = useAuth();
   const role = useRole();
 
-  const [currentView, setCurrentView] = useState<View>('import');
+  const [currentView, setCurrentView] = useState<View>('team');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [userListFilters, setUserListFilters] = useState<UserListFilters>({
@@ -45,13 +45,13 @@ function App() {
   const handleSignOut = async () => {
     await signOut();
     setSelectedUserId(null);
-    setCurrentView('import');
+    setCurrentView('team');
   };
 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-lg shadow text-gray-800">Checking session...</div>
+        <div className="bg-white p-6 rounded-lg shadow text-gray-800">Carregando...</div>
       </div>
     );
   }
@@ -83,17 +83,19 @@ function App() {
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-6">
-            <button
-              onClick={() => setCurrentView('import')}
-              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
-                currentView === 'import'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <FileSpreadsheet size={20} />
-              Import
-            </button>
+            {canImport(role) && (
+              <button
+                onClick={() => setCurrentView('import')}
+                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
+                  currentView === 'import'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <FileSpreadsheet size={20} />
+                Importar
+              </button>
+            )}
 
             <button
               onClick={() => setCurrentView('team')}
@@ -104,7 +106,7 @@ function App() {
               }`}
             >
               <LayoutDashboard size={20} />
-              Team
+              Dashboard
             </button>
 
             <button
@@ -116,10 +118,10 @@ function App() {
               }`}
             >
               <Users size={20} />
-              Users
+              Usuários
             </button>
 
-            {role === 'admin' && (
+            {isSuperAdmin(role) && (
               <button
                 onClick={() => setCurrentView('ops')}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
@@ -137,7 +139,7 @@ function App() {
       </nav>
 
       <main className={currentView === 'ops' ? '' : 'max-w-7xl mx-auto px-4 py-8'}>
-        {currentView === 'import' && <CSVImport onImportComplete={handleImportComplete} />}
+        {currentView === 'import' && canImport(role) && <CSVImport onImportComplete={handleImportComplete} />}
         {currentView === 'team' && <TeamDashboard key={refreshKey} />}
         {currentView === 'list' && (
           <UserList
@@ -149,7 +151,7 @@ function App() {
         {currentView === 'detail' && selectedUserId && (
           <UserDetail userId={selectedUserId} onBack={handleBackToList} />
         )}
-        {currentView === 'ops' && role === 'admin' && <OpsDashboard />}
+        {currentView === 'ops' && isSuperAdmin(role) && <OpsDashboard />}
       </main>
     </div>
   );

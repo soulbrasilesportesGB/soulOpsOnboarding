@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Calendar, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { normalizeMissingFields, STATUS_PT, PROFILE_KIND_PT } from '../lib/utils';
+import { useRole, canEditOutreach } from '../hooks/useRole';
 import type { Onboarding, Outreach, User } from '../types/database';
 
 interface UserDetailProps {
@@ -11,6 +12,7 @@ interface UserDetailProps {
 }
 
 export function UserDetail({ userId, onBack }: UserDetailProps) {
+  const role = useRole();
   const [user, setUser] = useState<(User & { role?: string | null }) | null>(null);
   const [onboardingRecords, setOnboardingRecords] = useState<Onboarding[]>([]);
   const [outreachRecords, setOutreachRecords] = useState<Outreach[]>([]);
@@ -219,16 +221,18 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold text-gray-800">Histórico de Contatos</h3>
-          <button
-            onClick={() => setShowOutreachForm(!showOutreachForm)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            <Plus size={20} />
-            Novo Contato
-          </button>
+          {canEditOutreach(role) && (
+            <button
+              onClick={() => setShowOutreachForm(!showOutreachForm)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              <Plus size={20} />
+              Novo Contato
+            </button>
+          )}
         </div>
 
-        {showOutreachForm && (
+        {showOutreachForm && canEditOutreach(role) && (
           <form onSubmit={handleSubmitOutreach} className="mb-6 p-4 border border-gray-200 rounded-lg space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Canal</label>
