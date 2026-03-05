@@ -52,7 +52,7 @@ interface MarketingMetrics {
   ig_seguidores: number | null;
   ig_crescimento: number | null;
   ig_posts: number | null;
-  ig_alcance_medio: number | null;
+  ig_visualizacoes: number | null;
   ig_interacoes: number | null;
   ig_pago_investimento: number | null;
   ig_pago_impressoes: number | null;
@@ -74,7 +74,7 @@ type MarketingForm = Omit<MarketingMetrics, 'week_start'>;
 
 const EMPTY_MKT_FORM: MarketingForm = {
   ig_seguidores: null, ig_crescimento: null, ig_posts: null,
-  ig_alcance_medio: null, ig_interacoes: null,
+  ig_visualizacoes: null, ig_interacoes: null,
   ig_pago_investimento: null, ig_pago_impressoes: null,
   ig_pago_cliques: null, ig_pago_leads: null,
   li_seguidores: null, li_crescimento: null, li_posts: null,
@@ -156,6 +156,7 @@ export function TeamDashboard() {
   const [mktEditing, setMktEditing] = useState(false);
   const [mktForm, setMktForm] = useState<MarketingForm>(EMPTY_MKT_FORM);
   const [mktSaving, setMktSaving] = useState(false);
+  const [mktError, setMktError] = useState<string | null>(null);
   const [progressionKind, setProgressionKind] = useState<ProgressionKind>('all');
   const [progressionRange, setProgressionRange] = useState({
     from: daysAgoISO(1),
@@ -197,6 +198,7 @@ export function TeamDashboard() {
 
   const saveMarketing = useCallback(async () => {
     setMktSaving(true);
+    setMktError(null);
     try {
       const payload = {
         week_start: mktWeek,
@@ -209,8 +211,9 @@ export function TeamDashboard() {
       if (error) throw error;
       await fetchMarketing(mktWeek);
       setMktEditing(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error saving marketing:', e);
+      setMktError(e?.message || 'Erro ao salvar. Verifique se a tabela foi criada no Supabase.');
     } finally {
       setMktSaving(false);
     }
@@ -641,7 +644,7 @@ export function TeamDashboard() {
                 { key: 'ig_seguidores',    label: 'Seguidores',     placeholder: '12500' },
                 { key: 'ig_crescimento',   label: 'Crescimento',    placeholder: '+120' },
                 { key: 'ig_posts',         label: 'Posts',          placeholder: '5' },
-                { key: 'ig_alcance_medio', label: 'Alcance médio',  placeholder: '3200' },
+                { key: 'ig_visualizacoes', label: 'Visualizações',  placeholder: '3200' },
                 { key: 'ig_interacoes',   label: 'Interações',      placeholder: '850' },
               ] as const).map(({ key, label, placeholder }) => (
                 <div key={key}>
@@ -719,6 +722,12 @@ export function TeamDashboard() {
               ))}
             </div>
           </div>
+
+          {mktError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+              {mktError}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button onClick={saveMarketing} disabled={mktSaving}
@@ -831,7 +840,7 @@ export function TeamDashboard() {
                     <MetricCard label="Seguidores"    val={mktData.ig_seguidores}    fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.ig_seguidores} />
                     <MetricCard label="Crescimento"   val={mktData.ig_crescimento}   fmt={v => v >= 0 ? `+${v}` : String(v)} prevVal={mktPrev?.ig_crescimento} />
                     <MetricCard label="Posts"         val={mktData.ig_posts}         fmt={v => String(v)}                   prevVal={mktPrev?.ig_posts} />
-                    <MetricCard label="Alcance médio" val={mktData.ig_alcance_medio} fmt={v => v.toLocaleString('pt-BR')}  prevVal={mktPrev?.ig_alcance_medio} />
+                    <MetricCard label="Visualizações" val={mktData.ig_visualizacoes} fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.ig_visualizacoes} />
                     <MetricCard label="Interações"    val={mktData.ig_interacoes}    fmt={v => v.toLocaleString('pt-BR')} prevVal={mktPrev?.ig_interacoes} />
                   </div>
                 </div>
