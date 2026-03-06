@@ -27,6 +27,7 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
   const [socialActionsFile, setSocialActionsFile] = useState<File | null>(null);
 
   const [importing, setImporting] = useState(false);
+  const [isFullSync, setIsFullSync] = useState(false);
   const [status, setStatus] = useState<{ type: StatusType; message: string }>({
     type: null,
     message: '',
@@ -403,6 +404,15 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
     setStatus({ type: null, message: '' });
 
     try {
+      if (isFullSync) {
+        // Clear onboarding and commercial scores for a fresh start
+        // Using head: true or HEAD as a workaround if delete needs it, but standard delete() is better
+        const { error: clearOnbError } = await (supabase.from('onboarding') as any).delete().neq('user_id', '00000000-0000-0000-0000-000000000000');
+        const { error: clearCommError } = await (supabase.from('athlete_commercial_scores') as any).delete().neq('athlete_id', '00000000-0000-0000-0000-000000000000');
+        if (clearOnbError) console.warn('Clear onboarding error:', clearOnbError);
+        if (clearCommError) console.warn('Clear commercial scores error:', clearCommError);
+      }
+
       const [
         profilesText,
         userRolesText,
@@ -770,6 +780,23 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
             onChange={(e) => setCompaniesFile(e.target.files?.[0] || null)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isFullSync}
+              onChange={(e) => setIsFullSync(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded"
+            />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-blue-800 uppercase">Sincronização Completa</span>
+              <span className="text-xs text-blue-600">
+                Limpa a base de dados antes de importar. Use para garantir que os números do dashboard batam com o CSV.
+              </span>
+            </div>
+          </label>
         </div>
 
         <hr className="my-2" />
