@@ -239,10 +239,10 @@ export function TeamDashboard() {
           .select('oportunidades_criadas, funil_leads, funil_reunioes, funil_propostas, funil_contratos, posts_semanais, engajamento_ig, taxa_abertura_email, taxa_clique_email')
           .eq('month', currentMonth)
           .maybeSingle(),
-        supabase.from('onboarding').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('onboarding').select('created_at').order('created_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
 
-      setLastImportAt((lastImportRes as any).data?.updated_at ?? null);
+      setLastImportAt((lastImportRes as any).data?.created_at ?? null);
       setAthleteCounts(countByStatus(athleteRes.data || null));
       setPartnerCounts(countByStatus(partnerRes.data || null));
       setTotalAthletes((athleteRes as any).count ?? (athleteRes.data?.length ?? 0));
