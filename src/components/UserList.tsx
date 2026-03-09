@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Search, User as UserIcon, Award, Download, ChevronDown, X, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { normalizeMissingFields, STATUS_BADGE_COLORS, STATUS_PT, PROFILE_KIND_PT } from '../lib/utils';
+import { STATES_LIST } from '../constants/brazilStates';
 import type { Onboarding, User as UserType } from '../types/database';
 
 interface UserWithOnboarding extends Onboarding {
@@ -25,6 +26,8 @@ export interface UserListFilters {
   createdTo: string;
   nextContactFrom: string;
   nextContactTo: string;
+  estadoFilter: string;
+  cidadeFilter: string;
 }
 
 interface UserListProps {
@@ -160,6 +163,13 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
       });
       if (!inRange) return false;
     }
+    // Estado
+    if (filters.estadoFilter && (user as any).estado_sigla !== filters.estadoFilter) return false;
+    // Cidade
+    if (filters.cidadeFilter) {
+      const cidade = ((user as any).cidade_nome || '').toLowerCase();
+      if (!cidade.includes(filters.cidadeFilter.toLowerCase())) return false;
+    }
     return true;
   });
 
@@ -244,12 +254,14 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
     filters.searchTerm ||
     filters.missingFieldFilter.length > 0 ||
     filters.createdFrom || filters.createdTo ||
-    filters.nextContactFrom || filters.nextContactTo;
+    filters.nextContactFrom || filters.nextContactTo ||
+    filters.estadoFilter || filters.cidadeFilter;
 
   const clearAll = () => onFiltersChange({
     profileKindFilter: 'all', statusFilter: 'all', searchTerm: '',
     missingFieldFilter: [], createdFrom: '', createdTo: '',
     nextContactFrom: '', nextContactTo: '',
+    estadoFilter: '', cidadeFilter: '',
   });
 
   if (loading) return <div className="text-center py-8">Carregando...</div>;
@@ -388,6 +400,26 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
             <input type="date" value={filters.nextContactTo} min={filters.nextContactFrom || undefined}
               onChange={e => setFilter({ nextContactTo: e.target.value })}
               className="flex-1 px-2 py-1.5 border border-blue-300 rounded text-sm" />
+          </div>
+        </div>
+
+        {/* Linha 3: Estado + Cidade */}
+        <div className="flex flex-wrap gap-3">
+          <select value={filters.estadoFilter}
+            onChange={e => setFilter({ estadoFilter: e.target.value, cidadeFilter: '' })}
+            className="flex-1 min-w-[130px] px-4 py-2 border border-gray-300 rounded-md text-sm">
+            <option value="">Todos os estados</option>
+            {STATES_LIST.map(s => (
+              <option key={s.id} value={s.sigla}>{s.sigla} — {s.nome}</option>
+            ))}
+          </select>
+
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input type="text" placeholder="Buscar cidade..."
+              value={filters.cidadeFilter}
+              onChange={e => setFilter({ cidadeFilter: e.target.value })}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm" />
           </div>
         </div>
 

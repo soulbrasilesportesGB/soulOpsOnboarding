@@ -29,6 +29,8 @@ function App() {
     createdTo: '',
     nextContactFrom: '',
     nextContactTo: '',
+    estadoFilter: '',
+    cidadeFilter: '',
   });
 
   const handleImportComplete = () => {

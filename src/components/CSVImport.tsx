@@ -4,6 +4,8 @@ import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Papa from 'papaparse';
 import { ACTIVATION_TALK_MENTOR_ID, ACTIVATION_BRAND_EVENT_IDS } from '../constants/activationIds';
+import { BRAZIL_STATES } from '../constants/brazilStates';
+import BRAZIL_CITIES_RAW from '../constants/brazilCities.json';
 import type { StatusType, CompletionStatus } from '../types/common';
 
 interface CSVImportProps {
@@ -579,6 +581,11 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
               activationTypesByAthleteId
             );
 
+            const stateId = athlete.state_id || athlete.estado || athlete.uf || athlete.state || null;
+            const cityId = athlete.city_id || athlete.cidade || athlete.city || null;
+            const estadoSigla = stateId ? (BRAZIL_STATES[stateId]?.sigla ?? null) : null;
+            const cidadeNome = cityId ? ((BRAZIL_CITIES_RAW as Record<string, { n: string; s: string }>)[cityId]?.n ?? null) : null;
+
             onboardingRecords.push({
               user_id: userId,
               profile_kind: 'athlete',
@@ -586,6 +593,8 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
               completion_status,
               completion_score: score,
               missing_fields: missing,
+              cidade_nome: cidadeNome,
+              estado_sigla: estadoSigla,
             });
           }
         }
@@ -604,6 +613,11 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
             const company = companyByUserId[userId];
             const { score, completion_status, missing } = calcCompanyCompletion(company);
 
+            const compStateId = company?.state_id || company?.estado || null;
+            const compCityId = company?.city_id || company?.cidade || null;
+            const compEstadoSigla = compStateId ? (BRAZIL_STATES[compStateId]?.sigla ?? null) : null;
+            const compCidadeNome = compCityId ? ((BRAZIL_CITIES_RAW as Record<string, { n: string; s: string }>)[compCityId]?.n ?? null) : null;
+
             onboardingRecords.push({
               user_id: userId,
               profile_kind: 'partner',
@@ -611,6 +625,8 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
               completion_status,
               completion_score: score,
               missing_fields: missing,
+              cidade_nome: compCidadeNome,
+              estado_sigla: compEstadoSigla,
             });
           }
         }
