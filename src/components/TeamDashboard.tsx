@@ -143,6 +143,7 @@ export function TeamDashboard() {
   const [commercialRows, setCommercialRows] = useState<CommercialRow[]>([]);
   const [teamOps, setTeamOps] = useState<TeamOpsMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastImportAt, setLastImportAt] = useState<string | null>(null);
 
   const [dailyProgress, setDailyProgress] = useState<DailyProgress | null>(null);
   const [progressionLoading, setProgressionLoading] = useState(false);
@@ -225,7 +226,7 @@ export function TeamDashboard() {
       const currentMonth = todayISO().slice(0, 7);
       const monthStart = `${currentMonth}-01`;
 
-      const [athleteRes, partnerRes, newAthletesRes, newPartnersRes, commercialRes, opsRes] = await Promise.all([
+      const [athleteRes, partnerRes, newAthletesRes, newPartnersRes, commercialRes, opsRes, lastImportRes] = await Promise.all([
         supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'athlete'),
         supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'partner'),
         (supabase.from('users') as any).select('onboarding!inner(profile_kind)', { count: 'exact', head: true }).eq('onboarding.profile_kind', 'athlete').gte('created_at_portal', monthStart),
@@ -238,8 +239,10 @@ export function TeamDashboard() {
           .select('oportunidades_criadas, funil_leads, funil_reunioes, funil_propostas, funil_contratos, posts_semanais, engajamento_ig, taxa_abertura_email, taxa_clique_email')
           .eq('month', currentMonth)
           .maybeSingle(),
+        supabase.from('onboarding').select('updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
       ]);
 
+      setLastImportAt((lastImportRes as any).data?.updated_at ?? null);
       setAthleteCounts(countByStatus(athleteRes.data || null));
       setPartnerCounts(countByStatus(partnerRes.data || null));
       setTotalAthletes((athleteRes as any).count ?? (athleteRes.data?.length ?? 0));
@@ -399,7 +402,18 @@ export function TeamDashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Team Dashboard</h2>
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-2xl font-bold text-gray-800">Team Dashboard</h2>
+        {lastImportAt && (
+          <span className="text-xs text-gray-400">
+            Última atualização:{' '}
+            {new Date(lastImportAt).toLocaleString('pt-BR', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            })}
+          </span>
+        )}
+      </div>
 
       {/* ── Tab nav ─────────────────────────────────────────────────────── */}
       <div className="flex gap-1 border-b border-gray-200">
