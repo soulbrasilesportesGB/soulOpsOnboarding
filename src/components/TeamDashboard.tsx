@@ -128,7 +128,7 @@ function daysAgoISO(days: number) {
   return new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
 }
 
-type TeamDashTab = 'usuarios' | 'marketing' | 'comercial';
+type TeamDashTab = 'usuarios' | 'marketing' | 'comercial' | 'metas';
 type ProgressionKind = 'all' | 'athlete' | 'partner';
 
 export function TeamDashboard() {
@@ -144,6 +144,12 @@ export function TeamDashboard() {
   const [teamOps, setTeamOps] = useState<TeamOpsMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastImportAt, setLastImportAt] = useState<string | null>(null);
+  const [newAthletesSinceMar, setNewAthletesSinceMar] = useState<number>(0);
+  const [oportunidadesTotal, setOportunidadesTotal] = useState<number>(0);
+  const [aportesTotal, setAportesTotal] = useState<number>(0);
+  const [aportesEditing, setAportesEditing] = useState(false);
+  const [aportesForm, setAportesForm] = useState<{ mar: number; abr: number }>({ mar: 0, abr: 0 });
+  const [aportesRaw, setAportesRaw] = useState<{ mar: number; abr: number }>({ mar: 0, abr: 0 });
 
   const [dailyProgress, setDailyProgress] = useState<DailyProgress | null>(null);
   const [progressionLoading, setProgressionLoading] = useState(false);
@@ -226,7 +232,7 @@ export function TeamDashboard() {
       const currentMonth = todayISO().slice(0, 7);
       const monthStart = `${currentMonth}-01`;
 
-      const [athleteRes, partnerRes, newAthletesRes, newPartnersRes, commercialRes, opsRes, lastImportRes] = await Promise.all([
+      const [athleteRes, partnerRes, newAthletesRes, newPartnersRes, commercialRes, opsRes, lastImportRes, newAthletesMarRes, opsGoalsRes] = await Promise.all([
         supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'athlete'),
         supabase.from('onboarding').select('completion_status', { count: 'exact' }).eq('profile_kind', 'partner'),
         (supabase.from('users') as any).select('onboarding!inner(profile_kind)', { count: 'exact', head: true }).eq('onboarding.profile_kind', 'athlete').gte('created_at_portal', monthStart),
@@ -240,9 +246,29 @@ export function TeamDashboard() {
           .eq('month', currentMonth)
           .maybeSingle(),
         supabase.from('onboarding').select('created_at').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        // Novos atletas desde 1 de março (meta Mar-Abr)
+        (supabase.from('users') as any).select('onboarding!inner(profile_kind)', { count: 'exact', head: true }).eq('onboarding.profile_kind', 'athlete').gte('created_at_portal', '2026-03-01'),
+        // Oportunidades + aportes de março e abril
+        (supabase.from('ops_metrics') as any)
+          .select('month, oportunidades_criadas, aportes_diretos_fechados')
+          .in('month', ['2026-03', '2026-04']),
       ]);
 
       setLastImportAt((lastImportRes as any).data?.created_at ?? null);
+
+      // Metas Mar-Abr
+      setNewAthletesSinceMar((newAthletesMarRes as any).count ?? 0);
+      const opsGoalsRows: any[] = (opsGoalsRes as any).data || [];
+      const sumOport = opsGoalsRows.reduce((s: number, r: any) => s + (r.oportunidades_criadas || 0), 0);
+      const marRow = opsGoalsRows.find((r: any) => r.month === '2026-03');
+      const abrRow = opsGoalsRows.find((r: any) => r.month === '2026-04');
+      const marAportes = marRow?.aportes_diretos_fechados ?? 0;
+      const abrAportes = abrRow?.aportes_diretos_fechados ?? 0;
+      setOportunidadesTotal(sumOport);
+      setAportesRaw({ mar: marAportes, abr: abrAportes });
+      setAportesForm({ mar: marAportes, abr: abrAportes });
+      setAportesTotal(marAportes + abrAportes);
+
       setAthleteCounts(countByStatus(athleteRes.data || null));
       setPartnerCounts(countByStatus(partnerRes.data || null));
       setTotalAthletes((athleteRes as any).count ?? (athleteRes.data?.length ?? 0));
@@ -340,6 +366,16 @@ export function TeamDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchMarketing(mktWeek); }, [mktWeek]);
 
+  const saveAportes = async () => {
+    await Promise.all([
+      (supabase.from('ops_metrics') as any).upsert({ month: '2026-03', aportes_diretos_fechados: aportesForm.mar }, { onConflict: 'month' }),
+      (supabase.from('ops_metrics') as any).upsert({ month: '2026-04', aportes_diretos_fechados: aportesForm.abr }, { onConflict: 'month' }),
+    ]);
+    setAportesRaw(aportesForm);
+    setAportesTotal(aportesForm.mar + aportesForm.abr);
+    setAportesEditing(false);
+  };
+
   const getCount = (counts: StatusCount[], status: string) =>
     counts.find((c) => c.completion_status === status)?.count || 0;
 
@@ -421,6 +457,7 @@ export function TeamDashboard() {
           { key: 'usuarios', label: 'Usuários' },
           { key: 'marketing', label: 'Marketing' },
           { key: 'comercial', label: 'Comercial' },
+          { key: 'metas', label: 'Metas Mar–Abr' },
         ] as { key: TeamDashTab; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
@@ -1002,6 +1039,122 @@ export function TeamDashboard() {
       </div>
 
       </> /* fim Comercial */}
+
+      {/* ── Aba: Metas ──────────────────────────────────────────────────── */}
+      {activeTab === 'metas' && (() => {
+        const athleteComplete = getCount(athleteCounts, 'complete');
+        const athleteAcceptable = getCount(athleteCounts, 'acceptable') + athleteComplete;
+        const pctComplete = totalAthletes > 0 ? Math.round((athleteComplete / totalAthletes) * 100) : 0;
+        const pctAcceptable = totalAthletes > 0 ? Math.round((athleteAcceptable / totalAthletes) * 100) : 0;
+
+        const goalColor = (current: number, min: number, ideal: number) => {
+          if (current >= ideal) return { bar: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'Meta ideal atingida' };
+          if (current >= min) return { bar: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', label: 'Acima do mínimo' };
+          return { bar: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', label: 'Abaixo do mínimo' };
+        };
+
+        const GoalCard = ({
+          label, current, min, ideal, format = (v: number) => String(v), suffix = '',
+        }: {
+          label: string; current: number; min: number; ideal: number;
+          format?: (v: number) => string; suffix?: string;
+        }) => {
+          const c = goalColor(current, min, ideal);
+          const pct = Math.min(100, Math.round((current / ideal) * 100));
+          const minPct = Math.round((min / ideal) * 100);
+          return (
+            <div className={`rounded-lg border p-5 ${c.bg} ${c.border}`}>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <span className="text-sm font-semibold text-gray-700">{label}</span>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${c.bg} ${c.text} border ${c.border}`}>{c.label}</span>
+              </div>
+              <div className="flex items-end gap-2 mb-3">
+                <span className="text-3xl font-bold text-gray-800">{format(current)}{suffix}</span>
+                <span className="text-sm text-gray-400 mb-1">/ {format(ideal)}{suffix} ideal</span>
+              </div>
+              {/* Barra de progresso */}
+              <div className="relative h-3 bg-white rounded-full overflow-visible border border-gray-200">
+                <div className={`h-full ${c.bar} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                {/* Marcador do mínimo */}
+                <div
+                  className="absolute top-[-4px] h-5 w-0.5 bg-gray-400"
+                  style={{ left: `${minPct}%` }}
+                  title={`Mínimo: ${format(min)}${suffix}`}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5 text-xs text-gray-400">
+                <span>0</span>
+                <span>mín {format(min)}{suffix}</span>
+                <span>ideal {format(ideal)}{suffix}</span>
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-400">Período: 1 mar – 30 abr 2026</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Plataforma */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-indigo-500" />
+                  <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Plataforma — Atletas</h3>
+                </div>
+                <GoalCard label="Novos atletas cadastrados (desde 1/3)" current={newAthletesSinceMar} min={100} ideal={120} />
+                <GoalCard label="Atletas com perfil completo" current={pctComplete} min={30} ideal={40} suffix="%" />
+                <GoalCard label="Atletas com perfil aceitável ou completo" current={pctAcceptable} min={50} ideal={60} suffix="%" />
+              </div>
+
+              {/* Comercial */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Handshake size={16} className="text-emerald-500" />
+                  <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Comercial</h3>
+                </div>
+                <GoalCard label="Empresas cadastradas no portal" current={totalPartners} min={20} ideal={30} />
+                <GoalCard label="Oportunidades criadas (mar + abr)" current={oportunidadesTotal} min={5} ideal={8} />
+
+                {/* Aportes diretos — editável pelo admin */}
+                <div className="space-y-2">
+                  <GoalCard label="Aportes Diretos fechados (mar + abr)" current={aportesTotal} min={2} ideal={4} />
+                  {canEditMarketing(role) && (
+                    aportesEditing ? (
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Editar Aportes Diretos</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {(['mar', 'abr'] as const).map((m) => (
+                            <div key={m}>
+                              <label className="text-xs text-gray-500 mb-1 block">{m === 'mar' ? 'Março' : 'Abril'}</label>
+                              <input type="number" min={0} value={aportesForm[m]}
+                                onChange={e => setAportesForm(f => ({ ...f, [m]: Number(e.target.value) }))}
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={saveAportes} className="px-4 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 transition">Salvar</button>
+                          <button onClick={() => { setAportesForm(aportesRaw); setAportesEditing(false); }}
+                            className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200 transition">Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => setAportesEditing(true)}
+                        className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 transition">
+                        <Pencil size={12} /> Editar aportes
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
