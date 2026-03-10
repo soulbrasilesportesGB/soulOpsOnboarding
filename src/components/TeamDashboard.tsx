@@ -1120,9 +1120,9 @@ export function TeamDashboard() {
                   <Users size={16} className="text-indigo-500" />
                   <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Plataforma — Atletas</h3>
                 </div>
-                <GoalCard label="Novos atletas cadastrados (desde 01/março)" current={newAthletesSinceMar} min={100} ideal={120} />
-                <GoalCard label="Atletas com perfil completo" current={pctComplete} min={30} ideal={40} suffix="%" />
-                <GoalCard label="Atletas com perfil aceitável ou completo" current={pctAcceptable} min={50} ideal={60} suffix="%" />
+                <GoalCard label="Novos atletas cadastrados (mar + abr)" current={newAthletesSinceMar} min={100} ideal={120} />
+                <GoalCard label="Total atletas com perfil completo" current={pctComplete} min={20} ideal={40} suffix="%" />
+                <GoalCard label="Total atletas com perfil aceitável ou completo" current={pctAcceptable} min={50} ideal={60} suffix="%" />
               </div>
 
               {/* Comercial */}
@@ -1131,7 +1131,7 @@ export function TeamDashboard() {
                   <Handshake size={16} className="text-emerald-500" />
                   <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Comercial</h3>
                 </div>
-                <GoalCard label="Empresas cadastradas no portal" current={totalPartners} min={20} ideal={30} />
+                <GoalCard label="Total empresas cadastradas" current={totalPartners} min={20} ideal={30} />
                 {/* Oportunidades — editável pelo admin */}
                 <div className="space-y-2">
                   <GoalCard label="Oportunidades criadas, com transação financeira (mar + abr)" current={oportunidadesTotal} min={5} ideal={8} />
