@@ -771,7 +771,7 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
     athlete_education_rows: setEducationFile,
     athlete_media_rows: setMediaFile,
     athlete_partners_rows: setPartnersFile,
-    athlete_ranking_rows: setRankingFile,
+    athlete_rankings_rows: setRankingFile,
     athlete_results_rows: setResultsFile,
     athlete_social_actions_rows: setSocialActionsFile,
   };
@@ -823,7 +823,7 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
             { label: 'athlete_causes_rows', file: causesFile, setter: setCausesFile },
             { label: 'athlete_education_rows', file: educationFile, setter: setEducationFile },
             { label: 'athlete_media_rows', file: mediaFile, setter: setMediaFile },
-            { label: 'athlete_ranking_rows', file: rankingFile, setter: setRankingFile, optional: true },
+            { label: 'athlete_rankings_rows', file: rankingFile, setter: setRankingFile, optional: true },
             { label: 'athlete_partners_rows', file: partnersFile, setter: setPartnersFile, optional: true },
             { label: 'athlete_results_rows', file: resultsFile, setter: setResultsFile },
             { label: 'athlete_social_actions_rows', file: socialActionsFile, setter: setSocialActionsFile, optional: true },
