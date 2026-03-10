@@ -1120,7 +1120,7 @@ export function TeamDashboard() {
                   <Users size={16} className="text-indigo-500" />
                   <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Plataforma — Atletas</h3>
                 </div>
-                <GoalCard label="Novos atletas cadastrados (desde 1/3)" current={newAthletesSinceMar} min={100} ideal={120} />
+                <GoalCard label="Novos atletas cadastrados (desde 01/março)" current={newAthletesSinceMar} min={100} ideal={120} />
                 <GoalCard label="Atletas com perfil completo" current={pctComplete} min={30} ideal={40} suffix="%" />
                 <GoalCard label="Atletas com perfil aceitável ou completo" current={pctAcceptable} min={50} ideal={60} suffix="%" />
               </div>
