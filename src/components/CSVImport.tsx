@@ -760,147 +760,88 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
     }
   };
 
+  const FILE_MAP: Record<string, (f: File) => void> = {
+    profiles_rows: setProfilesFile,
+    user_roles_rows: setUserRolesFile,
+    athletes_rows: setAthletesFile,
+    companies_rows: setCompaniesFile,
+    athlete_achievements_rows: setAchievementsFile,
+    athlete_activations_rows: setActivationsFile,
+    athlete_causes_rows: setCausesFile,
+    athlete_education_rows: setEducationFile,
+    athlete_media_rows: setMediaFile,
+    athlete_partners_rows: setPartnersFile,
+    athlete_ranking_rows: setRankingFile,
+    athlete_results_rows: setResultsFile,
+    athlete_social_actions_rows: setSocialActionsFile,
+  };
+
+  const handleBulkFiles = (files: FileList) => {
+    const unmatched: string[] = [];
+    Array.from(files).forEach((file) => {
+      const key = Object.keys(FILE_MAP).find((k) => file.name.startsWith(k));
+      if (key) {
+        FILE_MAP[key](file);
+      } else {
+        unmatched.push(file.name);
+      }
+    });
+    if (unmatched.length > 0) {
+      alert(`Arquivos não reconhecidos (verifique o nome):\n${unmatched.join('\n')}`);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Import CSV Files</h2>
 
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">profiles_rows</label>
+        <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50 text-center">
+          <p className="text-sm font-medium text-blue-700 mb-2">Selecionar todos os arquivos de uma vez</p>
+          <p className="text-xs text-blue-500 mb-3">Os arquivos são distribuídos automaticamente pelo nome</p>
           <input
             type="file"
             accept=".csv"
-            onChange={(e) => setProfilesFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">user_roles_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setUserRolesFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athletes_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setAthletesFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">companies_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setCompaniesFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            multiple
+            onChange={(e) => e.target.files && handleBulkFiles(e.target.files)}
+            className="w-full text-sm text-blue-700 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
           />
         </div>
 
         <hr className="my-2" />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athlete_achievements_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setAchievementsFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        <p className="text-xs text-gray-500">Ou selecione individualmente:</p>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athlete_activations_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setActivationsFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athlete_causes_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setCausesFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athlete_education_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setEducationFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athlete_media_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setMediaFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            athlete_ranking_rows (nice-to-have)
-          </label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setRankingFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            athlete_partners_rows (nice-to-have)
-          </label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setPartnersFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">athlete_results_rows</label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setResultsFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            athlete_social_actions_rows (nice-to-have)
-          </label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => setSocialActionsFile(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
+        <div className="grid grid-cols-1 gap-2">
+          {([
+            { label: 'profiles_rows', file: profilesFile, setter: setProfilesFile },
+            { label: 'user_roles_rows', file: userRolesFile, setter: setUserRolesFile },
+            { label: 'athletes_rows', file: athletesFile, setter: setAthletesFile },
+            { label: 'companies_rows', file: companiesFile, setter: setCompaniesFile },
+            { label: 'athlete_achievements_rows', file: achievementsFile, setter: setAchievementsFile },
+            { label: 'athlete_activations_rows', file: activationsFile, setter: setActivationsFile },
+            { label: 'athlete_causes_rows', file: causesFile, setter: setCausesFile },
+            { label: 'athlete_education_rows', file: educationFile, setter: setEducationFile },
+            { label: 'athlete_media_rows', file: mediaFile, setter: setMediaFile },
+            { label: 'athlete_ranking_rows', file: rankingFile, setter: setRankingFile, optional: true },
+            { label: 'athlete_partners_rows', file: partnersFile, setter: setPartnersFile, optional: true },
+            { label: 'athlete_results_rows', file: resultsFile, setter: setResultsFile },
+            { label: 'athlete_social_actions_rows', file: socialActionsFile, setter: setSocialActionsFile, optional: true },
+          ] as { label: string; file: File | null; setter: (f: File | null) => void; optional?: boolean }[]).map(({ label, file, setter, optional }) => (
+            <label key={label} className="flex items-center gap-3 p-2 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer">
+              <span className={`w-4 h-4 flex-shrink-0 rounded-full flex items-center justify-center text-white text-xs ${file ? 'bg-green-500' : optional ? 'bg-gray-300' : 'bg-red-300'}`}>
+                {file ? '✓' : ''}
+              </span>
+              <span className="text-xs font-mono text-gray-600 flex-1">{label}{optional ? ' (opcional)' : ''}</span>
+              <span className="text-xs text-gray-400 truncate max-w-[160px]">{file?.name ?? ''}</span>
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => setter(e.target.files?.[0] || null)}
+              />
+            </label>
+          ))}
         </div>
 
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
