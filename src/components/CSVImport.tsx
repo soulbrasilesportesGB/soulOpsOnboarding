@@ -529,6 +529,12 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
 
       const causeCountByAthleteId = mustCardCounts.causes;
 
+      // Fetch excluded user_ids to skip during import
+      const { data: excludedData } = await (supabase.from('users') as any)
+        .select('user_id')
+        .eq('excluded', true);
+      const excludedIds = new Set<string>((excludedData || []).map((r: any) => r.user_id));
+
       // onboarding records
       const onboardingRecords: any[] = [];
 
@@ -538,6 +544,7 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
 
         const role = roleByUserId[userId] || 'account';
         if (role === 'admin') continue;
+        if (excludedIds.has(userId)) continue;
 
         const hasAthleteRow = !!athleteByUserId[userId];
         const hasCompanyRow = !!companyByUserId[userId];
