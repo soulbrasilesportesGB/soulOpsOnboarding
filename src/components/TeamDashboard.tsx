@@ -150,6 +150,9 @@ export function TeamDashboard() {
   const [aportesEditing, setAportesEditing] = useState(false);
   const [aportesForm, setAportesForm] = useState<{ mar: number; abr: number }>({ mar: 0, abr: 0 });
   const [aportesRaw, setAportesRaw] = useState<{ mar: number; abr: number }>({ mar: 0, abr: 0 });
+  const [oportunidadesEditing, setOportunidadesEditing] = useState(false);
+  const [oportunidadesForm, setOportunidadesForm] = useState<{ mar: number; abr: number }>({ mar: 0, abr: 0 });
+  const [oportunidadesRaw, setOportunidadesRaw] = useState<{ mar: number; abr: number }>({ mar: 0, abr: 0 });
 
   const [dailyProgress, setDailyProgress] = useState<DailyProgress | null>(null);
   const [progressionLoading, setProgressionLoading] = useState(false);
@@ -259,12 +262,15 @@ export function TeamDashboard() {
       // Metas Mar-Abr
       setNewAthletesSinceMar((newAthletesMarRes as any).count ?? 0);
       const opsGoalsRows: any[] = (opsGoalsRes as any).data || [];
-      const sumOport = opsGoalsRows.reduce((s: number, r: any) => s + (r.oportunidades_criadas || 0), 0);
       const marRow = opsGoalsRows.find((r: any) => r.month === '2026-03');
       const abrRow = opsGoalsRows.find((r: any) => r.month === '2026-04');
+      const marOport = marRow?.oportunidades_criadas ?? 0;
+      const abrOport = abrRow?.oportunidades_criadas ?? 0;
       const marAportes = marRow?.aportes_diretos_fechados ?? 0;
       const abrAportes = abrRow?.aportes_diretos_fechados ?? 0;
-      setOportunidadesTotal(sumOport);
+      setOportunidadesRaw({ mar: marOport, abr: abrOport });
+      setOportunidadesForm({ mar: marOport, abr: abrOport });
+      setOportunidadesTotal(marOport + abrOport);
       setAportesRaw({ mar: marAportes, abr: abrAportes });
       setAportesForm({ mar: marAportes, abr: abrAportes });
       setAportesTotal(marAportes + abrAportes);
@@ -374,6 +380,16 @@ export function TeamDashboard() {
     setAportesRaw(aportesForm);
     setAportesTotal(aportesForm.mar + aportesForm.abr);
     setAportesEditing(false);
+  };
+
+  const saveOportunidades = async () => {
+    await Promise.all([
+      (supabase.from('ops_metrics') as any).upsert({ month: '2026-03', oportunidades_criadas: oportunidadesForm.mar }, { onConflict: 'month' }),
+      (supabase.from('ops_metrics') as any).upsert({ month: '2026-04', oportunidades_criadas: oportunidadesForm.abr }, { onConflict: 'month' }),
+    ]);
+    setOportunidadesRaw(oportunidadesForm);
+    setOportunidadesTotal(oportunidadesForm.mar + oportunidadesForm.abr);
+    setOportunidadesEditing(false);
   };
 
   const getCount = (counts: StatusCount[], status: string) =>
@@ -1116,11 +1132,41 @@ export function TeamDashboard() {
                   <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Comercial</h3>
                 </div>
                 <GoalCard label="Empresas cadastradas no portal" current={totalPartners} min={20} ideal={30} />
-                <GoalCard label="Oportunidades criadas (mar + abr)" current={oportunidadesTotal} min={5} ideal={8} />
+                {/* Oportunidades — editável pelo admin */}
+                <div className="space-y-2">
+                  <GoalCard label="Oportunidades criadas, com transação financeira (mar + abr)" current={oportunidadesTotal} min={5} ideal={8} />
+                  {canEditMarketing(role) && (
+                    oportunidadesEditing ? (
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Editar Oportunidades</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {(['mar', 'abr'] as const).map((m) => (
+                            <div key={m}>
+                              <label className="text-xs text-gray-500 mb-1 block">{m === 'mar' ? 'Março' : 'Abril'}</label>
+                              <input type="number" min={0} value={oportunidadesForm[m]}
+                                onChange={e => setOportunidadesForm(f => ({ ...f, [m]: Number(e.target.value) }))}
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={saveOportunidades} className="px-4 py-1.5 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 transition">Salvar</button>
+                          <button onClick={() => { setOportunidadesForm(oportunidadesRaw); setOportunidadesEditing(false); }}
+                            className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200 transition">Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => setOportunidadesEditing(true)}
+                        className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 transition">
+                        <Pencil size={12} /> Editar oportunidades
+                      </button>
+                    )
+                  )}
+                </div>
 
                 {/* Aportes diretos — editável pelo admin */}
                 <div className="space-y-2">
-                  <GoalCard label="Aportes Diretos fechados (mar + abr)" current={aportesTotal} min={2} ideal={4} />
+                  <GoalCard label="Aportes Diretos fechados, com transação financeira (mar + abr)" current={aportesTotal} min={2} ideal={4} />
                   {canEditMarketing(role) && (
                     aportesEditing ? (
                       <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
