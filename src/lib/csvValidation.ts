@@ -64,9 +64,12 @@ export const calcAthleteNice = (
     [!!athleteId && (niceCounts.partners?.[athleteId] ?? 0) > 0, 'nice:partners'],
     [!!athleteId && (niceCounts.social_actions?.[athleteId] ?? 0) > 0, 'nice:social_actions'],
     [hasTalkMentor, 'nice:talks_mentorship'],
-    [hasValue(athlete, ['youtube', 'youtube_url', 'youtube_link', 'youtubeChannel']), 'nice:youtube'],
-    [hasValue(athlete, ['tiktok', 'tiktok_url', 'tiktok_link']), 'nice:tiktok'],
-    [hasValue(athlete, ['linkedin', 'linkedin_url', 'linkedin_link']), 'nice:linkedin'],
+    [
+      hasValue(athlete, ['youtube', 'youtube_url', 'youtube_link', 'youtubeChannel']) ||
+      hasValue(athlete, ['tiktok', 'tiktok_url', 'tiktok_link']) ||
+      hasValue(athlete, ['linkedin', 'linkedin_url', 'linkedin_link']),
+      'nice:extra_social',
+    ],
   ];
 
   let points = 0;

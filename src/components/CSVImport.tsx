@@ -173,9 +173,12 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
       [!!athleteId && (niceCounts.partners?.[athleteId] ?? 0) > 0, 'nice:partners'],
       [!!athleteId && (niceCounts.social_actions?.[athleteId] ?? 0) > 0, 'nice:social_actions'],
       [hasTalkMentor, 'nice:talks_mentorship'],
-      [hasValue(a, ['youtube', 'youtube_url', 'youtube_link', 'youtubeChannel']), 'nice:youtube'],
-      [hasValue(a, ['tiktok', 'tiktok_url', 'tiktok_link']), 'nice:tiktok'],
-      [hasValue(a, ['linkedin', 'linkedin_url', 'linkedin_link']), 'nice:linkedin'],
+      [
+        hasValue(a, ['youtube', 'youtube_url', 'youtube_link', 'youtubeChannel']) ||
+        hasValue(a, ['tiktok', 'tiktok_url', 'tiktok_link']) ||
+        hasValue(a, ['linkedin', 'linkedin_url', 'linkedin_link']),
+        'nice:extra_social',
+      ],
     ];
 
     let points = 0;
