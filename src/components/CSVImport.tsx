@@ -465,13 +465,23 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
 
       const activationTypesByAthleteId = buildActivationTypeSetByAthleteId(activations);
 
-      // phone lookup: athletes CSV has telefone/phone/celular/whatsapp keyed by user_id
+      // phone + instagram lookup from athletes CSV
       const phoneByUserId: Record<string, string> = {};
+      const instagramByUserId: Record<string, string> = {};
       for (const a of athletes) {
         const uid = (a.user_id || '').toString().trim();
         if (!uid) continue;
         const phone = pick(a, ['telefone', 'phone', 'celular', 'whatsapp']);
         if (phone) phoneByUserId[uid] = phone;
+        const instagram = pick(a, ['instagram', 'insta', 'instagram_url']);
+        if (instagram) instagramByUserId[uid] = instagram;
+      }
+      // fallback: companies CSV also has instagram
+      for (const c of companies) {
+        const uid = (c.user_id || '').toString().trim();
+        if (!uid || instagramByUserId[uid]) continue;
+        const instagram = pick(c, ['instagram', 'instagram_url']);
+        if (instagram) instagramByUserId[uid] = instagram;
       }
 
       // users table (sidecar)
@@ -480,6 +490,7 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
         email: p.email,
         full_name: p.full_name || null,
         phone: phoneByUserId[p.id] ?? null,
+        instagram: instagramByUserId[p.id] ?? null,
         created_at_portal: p.created_at,
         updated_at_portal: p.updated_at,
       }));

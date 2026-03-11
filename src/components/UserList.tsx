@@ -207,9 +207,26 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
     return sorted[sorted.length - 1];
   };
 
+  const downloadCSV = (rows: (string | number | null | undefined)[][], filename: string) => {
+    const csvContent = rows.map(row =>
+      row.map(cell => {
+        const s = String(cell ?? '');
+        return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(',')
+    ).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const exportToCSV = () => {
     const headers = [
-      'Nome', 'Email', 'Tipo', 'Status', 'Preenchimento (%)', 'Score Comercial', 'Tier', 'Cadastro',
+      'Nome', 'Email', 'Telefone', 'Instagram', 'Tipo', 'Status', 'Preenchimento (%)', 'Score Comercial', 'Tier', 'Cadastro',
       '', '--- OBRIGATÓRIOS ---', ...MUST_HAVE_FIELDS,
       '', '--- COMPLEMENTARES ---', ...NICE_TO_HAVE_FIELDS,
     ];
@@ -219,6 +236,7 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
       const missingSet = new Set(missing.map(f => f.replace(/^must:|^nice:/, '')));
       return [
         user.users?.full_name || '', user.users?.email || '',
+        user.users?.phone || '', user.users?.instagram || '',
         PROFILE_KIND_PT[user.profile_kind] || user.profile_kind,
         STATUS_PT[user.completion_status] || user.completion_status,
         user.completion_score || '', score ?? '', tier ?? '',
@@ -229,23 +247,20 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
         ...NICE_TO_HAVE_FIELDS.map(f => missingSet.has(f) ? 'Faltando' : 'OK'),
       ];
     });
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row =>
-        row.map(cell => {
-          const s = String(cell ?? '');
-          return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
-        }).join(',')
-      ),
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.setAttribute('href', URL.createObjectURL(blob));
-    link.setAttribute('download', `usuarios-export-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadCSV([headers, ...data], `usuarios-export-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const exportSimpleCSV = () => {
+    const headers = ['Nome', 'Email', 'Instagram', 'Telefone', 'Tipo', 'Status'];
+    const data = filteredUsers.map((user) => [
+      user.users?.full_name || '',
+      user.users?.email || '',
+      user.users?.instagram || '',
+      user.users?.phone || '',
+      PROFILE_KIND_PT[user.profile_kind] || user.profile_kind,
+      STATUS_PT[user.completion_status] || user.completion_status,
+    ]);
+    downloadCSV([headers, ...data], `usuarios-simples-${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const hasActiveFilters =
@@ -281,9 +296,13 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
               <X size={14} /> Limpar filtros
             </button>
           )}
+          <button onClick={exportSimpleCSV} disabled={filteredUsers.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition">
+            <Download size={18} /> Exportar Simples
+          </button>
           <button onClick={exportToCSV} disabled={filteredUsers.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition">
-            <Download size={18} /> Exportar CSV
+            <Download size={18} /> Exportar Completo
           </button>
         </div>
       </div>

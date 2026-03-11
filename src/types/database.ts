@@ -7,6 +7,7 @@ export interface Database {
           email: string;
           full_name: string | null;
           phone: string | null;
+          instagram: string | null;
           created_at_portal: string;
           updated_at_portal: string;
         };
@@ -15,6 +16,7 @@ export interface Database {
           email: string;
           full_name?: string | null;
           phone?: string | null;
+          instagram?: string | null;
           created_at_portal?: string;
           updated_at_portal?: string;
         };
@@ -23,6 +25,7 @@ export interface Database {
           email?: string;
           full_name?: string | null;
           phone?: string | null;
+          instagram?: string | null;
           created_at_portal?: string;
           updated_at_portal?: string;
         };
