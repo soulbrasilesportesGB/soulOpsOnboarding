@@ -465,11 +465,21 @@ export function CSVImport({ onImportComplete }: CSVImportProps) {
 
       const activationTypesByAthleteId = buildActivationTypeSetByAthleteId(activations);
 
+      // phone lookup: athletes CSV has telefone/phone/celular/whatsapp keyed by user_id
+      const phoneByUserId: Record<string, string> = {};
+      for (const a of athletes) {
+        const uid = (a.user_id || '').toString().trim();
+        if (!uid) continue;
+        const phone = pick(a, ['telefone', 'phone', 'celular', 'whatsapp']);
+        if (phone) phoneByUserId[uid] = phone;
+      }
+
       // users table (sidecar)
       const usersToUpsert = profiles.map((p) => ({
         user_id: p.id,
         email: p.email,
         full_name: p.full_name || null,
+        phone: phoneByUserId[p.id] ?? null,
         created_at_portal: p.created_at,
         updated_at_portal: p.updated_at,
       }));

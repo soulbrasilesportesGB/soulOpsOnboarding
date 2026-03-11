@@ -116,6 +116,7 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
 
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <p className="text-gray-600">{user.email}</p>
+          {user.phone && <p className="text-gray-600">{user.phone}</p>}
           {user.role && (
             <span className="px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">role: {user.role}</span>
           )}

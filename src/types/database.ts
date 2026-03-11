@@ -6,6 +6,7 @@ export interface Database {
           user_id: string;
           email: string;
           full_name: string | null;
+          phone: string | null;
           created_at_portal: string;
           updated_at_portal: string;
         };
@@ -13,6 +14,7 @@ export interface Database {
           user_id: string;
           email: string;
           full_name?: string | null;
+          phone?: string | null;
           created_at_portal?: string;
           updated_at_portal?: string;
         };
@@ -20,6 +22,7 @@ export interface Database {
           user_id?: string;
           email?: string;
           full_name?: string | null;
+          phone?: string | null;
           created_at_portal?: string;
           updated_at_portal?: string;
         };
