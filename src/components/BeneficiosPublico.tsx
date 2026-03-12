@@ -31,6 +31,8 @@ interface Parceiro {
   // delivery
   modalidade: 'presencial' | 'online' | 'híbrido' | null;
   cidade_estado: string | null;
+  // interno
+  comissao_percent: number | null;
 }
 
 function calcPrecoComDesconto(p: Parceiro): number | null {
@@ -85,7 +87,7 @@ export function BeneficiosPublico() {
   useEffect(() => {
     supabase
       .from('marketplace_parceiros')
-      .select('id,nome,categoria,descricao,beneficio,logo_url,registro_profissional,valor_original,valor_unidade,desconto_tipo,desconto_valor,modalidade,cidade_estado')
+      .select('id,nome,categoria,descricao,beneficio,logo_url,registro_profissional,valor_original,valor_unidade,desconto_tipo,desconto_valor,modalidade,cidade_estado,comissao_percent')
       .eq('ativo', true)
       .order('nome')
       .then(({ data }: { data: Parceiro[] | null }) => {
@@ -138,6 +140,20 @@ export function BeneficiosPublico() {
 
     setCouponCode(codigo);
     setResgateStep('success');
+
+    // Auto-cria transação no admin (fire-and-forget)
+    const precoFinalAuto = calcPrecoComDesconto(selected!);
+    const valorBruto = precoFinalAuto ?? selected!.valor_original ?? 0;
+    supabase.from('marketplace_transacoes').insert({
+      parceiro_id: selected!.id,
+      atleta_email: email,
+      valor_unitario: valorBruto,
+      quantidade: 1,
+      valor_bruto: valorBruto,
+      comissao_percent: selected!.comissao_percent ?? 0,
+      status_repasse: 'pendente',
+      status_repasse_parceiro: 'pendente',
+    }).catch(() => {});
 
     // Notifica equipe Soul por e-mail (fire-and-forget)
     supabase.functions.invoke('notify-coupon', {
@@ -609,16 +625,11 @@ export function BeneficiosPublico() {
         <div style={{ maxWidth: 1100, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, fontWeight: 900, color: WHITE, letterSpacing: -0.5,
-            }}>S</div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: TEXT, letterSpacing: -0.3, lineHeight: 1 }}>Soul Brasil</div>
-              <div style={{ fontSize: 10, color: TEXT2, letterSpacing: 0.5, marginTop: 1 }}>Benefícios</div>
-            </div>
+            <img
+              src="/soul-logo.png"
+              alt="Soul Brasil"
+              style={{ height: 36, width: 'auto', objectFit: 'contain' }}
+            />
           </div>
           <div style={{ fontSize: 12, color: TEXT2 }}>
             Exclusivo para atletas cadastrados
@@ -636,13 +647,13 @@ export function BeneficiosPublico() {
             fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
             padding: '5px 14px', borderRadius: 20, marginBottom: 16,
           }}>
-            SOUL BENEFÍCIOS
+            SOUL INDICA
           </div>
           <h1 style={{ fontSize: 38, fontWeight: 900, color: TEXT, margin: '0 0 12px', lineHeight: 1.15 }}>
             Benefícios exclusivos<br />para atletas Soul
           </h1>
           <p style={{ fontSize: 16, color: TEXT2, maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
-            Parceiros selecionados pela Soul Brasil. Use seu e-mail cadastrado na plataforma para resgatar condições únicas.
+            Serviços selecionados pela Soul. Use seu e-mail cadastrado na plataforma para resgatar condições únicas.
           </p>
         </div>
 
@@ -682,7 +693,18 @@ export function BeneficiosPublico() {
 
         {/* Footer note */}
         <div style={{ textAlign: 'center', marginTop: 64, paddingTop: 32, borderTop: `1px solid ${BORDER}`, color: TEXT2, fontSize: 12 }}>
-          Dúvidas? Entre em contato com a Soul Brasil pelo portal ou WhatsApp.
+          © 2026 Soul Brasil Esportes. Todos os direitos reservados.
+          <br />
+          Dúvidas? Entre em contato com a Soul Brasil Esportes por{' '}
+          <a href="mailto:contato@soulbrasil.co"
+            style={{ color: GREEN_DARK, textDecoration: 'none', fontWeight: 600 }}>
+            e-mail
+          </a>
+          {' '}ou{' '}
+          <a href="https://wa.me/554184079334" target="_blank" rel="noopener noreferrer"
+            style={{ color: GREEN_DARK, textDecoration: 'none', fontWeight: 600 }}>
+            WhatsApp
+          </a>.
         </div>
       </div>
 

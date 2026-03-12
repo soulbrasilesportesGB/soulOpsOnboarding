@@ -263,7 +263,7 @@ export function MarketplaceAdmin() {
 
   async function saveTransacao() {
     if (!transForm.parceiro_id || !transForm.valor_unitario) {
-      setStatus('Parceiro e valor unitário são obrigatórios');
+      setStatus('Fornecedor e valor unitário são obrigatórios');
       return;
     }
     const valorUnitario = parseFloat(transForm.valor_unitario);
@@ -305,7 +305,7 @@ export function MarketplaceAdmin() {
       .select('codigo, atleta_email, atleta_cpf, criado_em, marketplace_parceiros(nome)');
     if (!data) return;
     downloadCSV('cupons.csv',
-      ['Parceiro', 'Email', 'CPF', 'Código', 'Data'],
+      ['Fornecedor', 'Email', 'CPF', 'Código', 'Data'],
       data.map((r: any) => [
         r.marketplace_parceiros?.nome ?? '',
         r.atleta_email ?? '',
@@ -320,7 +320,7 @@ export function MarketplaceAdmin() {
     const pNome: Record<string, string> = {};
     parceiros.forEach((p) => (pNome[p.id] = p.nome));
     downloadCSV('transacoes.csv',
-      ['Parceiro', 'Atleta Email', 'Qtd', 'Valor Unitário', 'Valor Bruto', 'Comissão %', 'Valor Líquido', 'Repasse Atleta', 'Repasse Parceiro', 'Data'],
+      ['Fornecedor', 'Atleta Email', 'Qtd', 'Valor Unitário', 'Valor Bruto', 'Comissão %', 'Valor Líquido', 'Repasse Atleta', 'Repasse Fornecedor', 'Data'],
       transacoes.map((t) => [
         pNome[t.parceiro_id] ?? t.parceiro_id,
         t.atleta_email ?? '',
@@ -373,7 +373,7 @@ export function MarketplaceAdmin() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Marketplace Soul Benefícios</h2>
-          <p className="text-sm text-gray-500 mt-1">Gestão de parceiros, cupons e transações</p>
+          <p className="text-sm text-gray-500 mt-1">Gestão de fornecedores, cupons e transações</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {status && (
@@ -395,7 +395,7 @@ export function MarketplaceAdmin() {
       {/* ── Parceiros ─────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Parceiros ({parceiros.length})</h3>
+          <h3 className="text-lg font-semibold text-gray-800">Fornecedores ({parceiros.length})</h3>
           <button
             onClick={() => {
               if (showParceiroForm && !editingId) {
@@ -407,7 +407,7 @@ export function MarketplaceAdmin() {
               }
             }}
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition">
-            {showParceiroForm && !editingId ? '✕ Cancelar' : '+ Novo parceiro'}
+            {showParceiroForm && !editingId ? '✕ Cancelar' : '+ Novo fornecedor'}
           </button>
         </div>
 
@@ -415,7 +415,7 @@ export function MarketplaceAdmin() {
         {showParceiroForm && (
           <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-4">
             <div className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
-              {editingId ? 'Editar Parceiro' : 'Novo Parceiro'}
+              {editingId ? 'Editar Fornecedor' : 'Novo Fornecedor'}
             </div>
 
             {/* Basic info */}
@@ -429,7 +429,7 @@ export function MarketplaceAdmin() {
                 {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
               </select>
               <textarea className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
-                rows={2} placeholder="Descrição do parceiro" value={parceiroForm.descricao}
+                rows={2} placeholder="Descrição do fornecedor" value={parceiroForm.descricao}
                 onChange={(e) => setParceiroForm((f) => ({ ...f, descricao: e.target.value }))} />
               <textarea className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
                 rows={2} placeholder="Benefício oferecido (texto visível para o atleta)" value={parceiroForm.beneficio}
@@ -616,7 +616,7 @@ export function MarketplaceAdmin() {
                 );
               })}
               {parceiros.length === 0 && (
-                <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-400">Nenhum parceiro cadastrado</td></tr>
+                <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-400">Nenhum fornecedor cadastrado</td></tr>
               )}
             </tbody>
           </table>
@@ -645,7 +645,7 @@ export function MarketplaceAdmin() {
               <select className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                 value={transForm.parceiro_id}
                 onChange={(e) => handleParceiroSelect(e.target.value)}>
-                <option value="">Parceiro *</option>
+                <option value="">Fornecedor *</option>
                 {parceiros.filter((p) => p.ativo).map((p) => (
                   <option key={p.id} value={p.id}>{p.nome}</option>
                 ))}
@@ -754,7 +754,7 @@ export function MarketplaceAdmin() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200">
-                {['Parceiro', 'Atleta', 'Bruto', 'Comissão', 'Líquido', 'Repasse atleta', 'Repasse parceiro', 'Data', ''].map((h) => (
+                {['Fornecedor', 'Atleta', 'Bruto', 'Comissão', 'Líquido', 'Repasse atleta', 'Repasse fornecedor', 'Data', ''].map((h) => (
                   <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -796,7 +796,7 @@ export function MarketplaceAdmin() {
                         </button>
                         <button onClick={() => toggleRepaseParceiro(t)}
                           className="px-2 py-1 border border-gray-300 text-gray-600 text-xs rounded-md hover:bg-gray-50 transition whitespace-nowrap">
-                          {repaseParceiro === 'pendente' ? '✓ Parceiro pago' : 'Reabrir parceiro'}
+                          {repaseParceiro === 'pendente' ? '✓ Fornecedor pago' : 'Reabrir fornecedor'}
                         </button>
                       </div>
                     </td>

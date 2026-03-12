@@ -25,12 +25,12 @@ Deno.serve(async (req: Request) => {
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #111827;">
         <div style="background: linear-gradient(135deg, #00C896, #00A87C); padding: 28px 32px; border-radius: 12px 12px 0 0;">
-          <div style="font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -0.5px;">Soul Benefícios</div>
+          <div style="font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -0.5px;">Soul Indica</div>
           <div style="font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 4px;">Novo resgate de cupom</div>
         </div>
         <div style="background: #fff; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px; padding: 28px 32px;">
           <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">
-            Um atleta acabou de resgatar um benefício na plataforma Soul Benefícios.
+            Um atleta acabou de resgatar um benefício na plataforma Soul Indica.
           </p>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr>
@@ -70,12 +70,12 @@ Deno.serve(async (req: Request) => {
         'Authorization': ZEPTO_API_KEY,
       },
       body: JSON.stringify({
-        from: { address: 'contato@soulbrasil.co', name: 'Soul Benefícios' },
+        from: { address: 'contato@soulbrasil.co', name: 'Soul Indica' },
         to: [
           { email_address: { address: 'contato@soulbrasil.co', name: 'Soul' } },
           { email_address: { address: 'ana@soulbrasil.co', name: 'Ana' } },
         ],
-        subject: `[Soul Benefícios] Novo resgate — ${parceiro_nome} | ${atleta_email}`,
+        subject: `[Soul Indica] Novo resgate — ${parceiro_nome} | ${atleta_email}`,
         htmlbody: html,
       }),
     });
