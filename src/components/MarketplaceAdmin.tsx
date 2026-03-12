@@ -298,6 +298,13 @@ export function MarketplaceAdmin() {
     setTransacoes((prev) => prev.map((x) => (x.id === t.id ? { ...x, status_repasse_parceiro: next } : x)));
   }
 
+  async function deleteTransacao(id: string) {
+    if (!confirm('Excluir esta transação?')) return;
+    const { error } = await supabase.from('marketplace_transacoes').delete().eq('id', id);
+    if (error) { setStatus('Erro ao excluir: ' + error.message); return; }
+    setTransacoes((prev) => prev.filter((x) => x.id !== id));
+  }
+
   // ── Export ──────────────────────────────────────────────────────────────────
   async function exportCupons() {
     const { data } = await supabase
@@ -797,6 +804,10 @@ export function MarketplaceAdmin() {
                         <button onClick={() => toggleRepaseParceiro(t)}
                           className="px-2 py-1 border border-gray-300 text-gray-600 text-xs rounded-md hover:bg-gray-50 transition whitespace-nowrap">
                           {repaseParceiro === 'pendente' ? '✓ Fornecedor pago' : 'Reabrir fornecedor'}
+                        </button>
+                        <button onClick={() => deleteTransacao(t.id)}
+                          className="px-2 py-1 border border-red-200 text-red-500 text-xs rounded-md hover:bg-red-50 transition">
+                          Excluir
                         </button>
                       </div>
                     </td>
