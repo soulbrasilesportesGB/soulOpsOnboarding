@@ -310,7 +310,7 @@ export function UserDetail({ userId, onBack }: UserDetailProps) {
                     <MessageSquare size={16} className="text-gray-600" />
                     <span className="font-medium">{record.channel}</span>
                   </div>
-                  <span className="text-sm text-gray-500">{new Date(record.created_at).toLocaleDateString()}</span>
+                  <span className="text-sm text-gray-500">{record.created_at ? new Date(record.created_at).toLocaleDateString() : ''}</span>
                 </div>
                 {record.outcome && (
                   <p className="text-sm text-gray-700 mb-2">

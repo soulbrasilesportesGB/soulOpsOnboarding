@@ -7,10 +7,10 @@ import { TeamDashboard } from './components/TeamDashboard';
 import { UserList } from './components/UserList';
 import { UserDetail } from './components/UserDetail';
 import { Auth } from './components/Auth';
-import { OpsDashboard } from './components/OpsDashboard';
+import { MarketplaceAdmin } from './components/MarketplaceAdmin';
 import type { UserListFilters } from './components/UserList';
 
-import { FileSpreadsheet, LayoutDashboard, Users, LogOut, BarChart3 } from 'lucide-react';
+import { FileSpreadsheet, LayoutDashboard, Users, LogOut, ShoppingBag } from 'lucide-react';
 import type { View } from './types/common';
 
 function App() {
@@ -129,22 +129,22 @@ function App() {
 
             {isSuperAdmin(role) && (
               <button
-                onClick={() => setCurrentView('ops')}
+                onClick={() => setCurrentView('marketplace')}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 transition ${
-                  currentView === 'ops'
+                  currentView === 'marketplace'
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <BarChart3 size={20} />
-                Ops
+                <ShoppingBag size={20} />
+                Marketplace
               </button>
             )}
           </div>
         </div>
       </nav>
 
-      <main className={currentView === 'ops' ? '' : 'max-w-7xl mx-auto px-4 py-8'}>
+      <main className="max-w-7xl mx-auto px-4 py-8">
         {currentView === 'import' && canImport(role) && <CSVImport onImportComplete={handleImportComplete} />}
         {currentView === 'team' && <TeamDashboard key={refreshKey} />}
         {currentView === 'list' && (
@@ -157,7 +157,7 @@ function App() {
         {currentView === 'detail' && selectedUserId && (
           <UserDetail userId={selectedUserId} onBack={handleBackToList} />
         )}
-        {currentView === 'ops' && isSuperAdmin(role) && <OpsDashboard />}
+        {currentView === 'marketplace' && isSuperAdmin(role) && <MarketplaceAdmin />}
       </main>
     </div>
   );

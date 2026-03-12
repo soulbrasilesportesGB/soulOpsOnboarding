@@ -87,15 +87,15 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
       const deduped = Object.values(
         ((data as unknown as UserWithOnboarding[]) || []).reduce<Record<string, UserWithOnboarding>>(
           (acc, row) => {
-            const existing = acc[row.user_id];
-            if (!existing) { acc[row.user_id] = row; return acc; }
-            const priorityNew = PROFILE_KIND_PRIORITY[row.profile_kind] ?? -1;
-            const priorityOld = PROFILE_KIND_PRIORITY[existing.profile_kind] ?? -1;
+            const existing = acc[row.user_id!];
+            if (!existing) { acc[row.user_id!] = row; return acc; }
+            const priorityNew = PROFILE_KIND_PRIORITY[row.profile_kind ?? ''] ?? -1;
+            const priorityOld = PROFILE_KIND_PRIORITY[existing.profile_kind ?? ''] ?? -1;
             if (
               priorityNew > priorityOld ||
               (priorityNew === priorityOld && (row.completion_score ?? 0) > (existing.completion_score ?? 0))
             ) {
-              acc[row.user_id] = row;
+              acc[row.user_id!] = row;
             }
             return acc;
           },
@@ -237,8 +237,8 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
       return [
         user.users?.full_name || '', user.users?.email || '',
         user.users?.phone || '', user.users?.instagram || '',
-        PROFILE_KIND_PT[user.profile_kind] || user.profile_kind,
-        STATUS_PT[user.completion_status] || user.completion_status,
+        PROFILE_KIND_PT[user.profile_kind ?? ''] || user.profile_kind,
+        STATUS_PT[user.completion_status ?? ''] || user.completion_status,
         user.completion_score || '', score ?? '', tier ?? '',
         user.users?.created_at_portal ? new Date(user.users.created_at_portal).toLocaleDateString('pt-BR') : '',
         '', '',
@@ -257,8 +257,8 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
       user.users?.email || '',
       user.users?.instagram || '',
       user.users?.phone || '',
-      PROFILE_KIND_PT[user.profile_kind] || user.profile_kind,
-      STATUS_PT[user.completion_status] || user.completion_status,
+      PROFILE_KIND_PT[user.profile_kind ?? ''] || user.profile_kind,
+      STATUS_PT[user.completion_status ?? ''] || user.completion_status,
     ]);
     downloadCSV([headers, ...data], `usuarios-simples-${new Date().toISOString().split('T')[0]}.csv`);
   };
@@ -474,7 +474,7 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
             const followup = nextFollowup(user);
 
             return (
-              <div key={user.id} onClick={() => onSelectUser(user.user_id)}
+              <div key={user.id} onClick={() => onSelectUser(user.user_id!)}
                 className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4 min-w-0">
@@ -515,11 +515,11 @@ export function UserList({ onSelectUser, filters, onFiltersChange }: UserListPro
                       </div>
                     )}
 
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getProfileKindBadge(user.profile_kind)}`}>
-                      {labelProfileKind(user.profile_kind)}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getProfileKindBadge(user.profile_kind ?? '')}`}>
+                      {labelProfileKind(user.profile_kind ?? '')}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_BADGE_COLORS[user.completion_status] || STATUS_BADGE_COLORS['incomplete']}`}>
-                      {STATUS_PT[user.completion_status] || user.completion_status}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_BADGE_COLORS[user.completion_status ?? ''] || STATUS_BADGE_COLORS['incomplete']}`}>
+                      {STATUS_PT[user.completion_status ?? ''] || user.completion_status}
                     </span>
                     <span className="text-sm text-gray-600">{user.completion_score}%</span>
                   </div>

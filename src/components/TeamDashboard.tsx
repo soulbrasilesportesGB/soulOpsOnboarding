@@ -275,8 +275,8 @@ export function TeamDashboard() {
       setAportesForm({ mar: marAportes, abr: abrAportes });
       setAportesTotal(marAportes + abrAportes);
 
-      setAthleteCounts(countByStatus(athleteRes.data || null));
-      setPartnerCounts(countByStatus(partnerRes.data || null));
+      setAthleteCounts(countByStatus((athleteRes.data as any) || null));
+      setPartnerCounts(countByStatus((partnerRes.data as any) || null));
       setTotalAthletes((athleteRes as any).count ?? (athleteRes.data?.length ?? 0));
       setTotalPartners((partnerRes as any).count ?? (partnerRes.data?.length ?? 0));
       setNewAthletesThisMonth((newAthletesRes as any).count ?? 0);
