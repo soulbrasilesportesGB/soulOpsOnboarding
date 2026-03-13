@@ -136,11 +136,13 @@ export function BeneficiosPublico() {
     const catCode = CAT_CODE[selected!.categoria] ?? 'GEN';
     const codigo = `SOUL-${catCode}-${randomCode(4)}`;
 
-    const { data: cupomData, error: insertErr } = await supabase.from('marketplace_cupons').insert({
+    const cupomId = crypto.randomUUID();
+    const { error: insertErr } = await supabase.from('marketplace_cupons').insert({
+      id: cupomId,
       parceiro_id: selected!.id,
       atleta_email: email,
       codigo,
-    }).select('id').single();
+    });
 
     if (insertErr) {
       if (insertErr.code === '23505') { setResgateStep('duplicate'); }
@@ -159,7 +161,7 @@ export function BeneficiosPublico() {
     await supabase.from('marketplace_transacoes').insert({
       parceiro_id: parceiroId,
       atleta_email: email,
-      cupom_id: cupomData?.id ?? null,
+      cupom_id: cupomId,
       valor_unitario: valorBruto,
       quantidade: 1,
       valor_bruto: valorBruto,
