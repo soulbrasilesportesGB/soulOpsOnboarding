@@ -85,6 +85,11 @@ export function BeneficiosPublico() {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    document.title = 'Benefícios Soul Brasil Esportes';
+    return () => { document.title = 'Soul Brasil'; };
+  }, []);
+
+  useEffect(() => {
     supabase
       .from('marketplace_parceiros')
       .select('id,nome,categoria,descricao,beneficio,logo_url,registro_profissional,valor_original,valor_unidade,desconto_tipo,desconto_valor,modalidade,cidade_estado,comissao_percent')
