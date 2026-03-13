@@ -190,11 +190,17 @@ export function MarketplaceAdmin() {
   // ── Auto-fill transação ao selecionar parceiro ─────────────────────────────
   function handleParceiroSelect(parceiroId: string) {
     const p = parceiros.find((x) => x.id === parceiroId);
+    if (!p) return;
+    const precoFinal = (() => {
+      if (!p.valor_original || !p.desconto_tipo || !p.desconto_valor) return p.valor_original;
+      if (p.desconto_tipo === 'percent') return p.valor_original * (1 - p.desconto_valor / 100);
+      return p.valor_original - p.desconto_valor;
+    })();
     setTransForm((f) => ({
       ...f,
       parceiro_id: parceiroId,
-      valor_unitario: p?.valor_original != null ? String(p.valor_original) : f.valor_unitario,
-      comissao_percent: p?.comissao_percent != null ? String(p.comissao_percent) : f.comissao_percent,
+      valor_unitario: precoFinal != null ? String(precoFinal) : f.valor_unitario,
+      comissao_percent: p.comissao_percent != null ? String(p.comissao_percent) : f.comissao_percent,
     }));
   }
 
