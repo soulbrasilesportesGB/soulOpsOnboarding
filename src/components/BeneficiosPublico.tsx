@@ -144,18 +144,19 @@ export function BeneficiosPublico() {
     // Auto-cria transação no admin
     const precoFinalAuto = calcPrecoComDesconto(selected!);
     const valorBruto = precoFinalAuto ?? selected!.valor_original ?? 0;
-    supabase.from('marketplace_transacoes').insert({
-      parceiro_id: selected!.id,
-      atleta_email: email,
-      valor_unitario: valorBruto,
-      quantidade: 1,
-      valor_bruto: valorBruto,
-      comissao_percent: selected!.comissao_percent ?? 0,
-      status_repasse: 'pendente',
-      status_repasse_parceiro: 'pendente',
-    }).then(({ error }: { error: unknown }) => {
+    (async () => {
+      const { error } = await supabase.from('marketplace_transacoes').insert({
+        parceiro_id: selected!.id,
+        atleta_email: email,
+        valor_unitario: valorBruto,
+        quantidade: 1,
+        valor_bruto: valorBruto,
+        comissao_percent: selected!.comissao_percent ?? 0,
+        status_repasse: 'pendente',
+        status_repasse_parceiro: 'pendente',
+      });
       if (error) console.error('[auto-transacao] erro:', error);
-    });
+    })();
 
     // Notifica equipe Soul por e-mail (fire-and-forget)
     supabase.functions.invoke('notify-coupon', {
