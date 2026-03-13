@@ -141,7 +141,7 @@ export function BeneficiosPublico() {
     setCouponCode(codigo);
     setResgateStep('success');
 
-    // Auto-cria transação no admin (fire-and-forget)
+    // Auto-cria transação no admin
     const precoFinalAuto = calcPrecoComDesconto(selected!);
     const valorBruto = precoFinalAuto ?? selected!.valor_original ?? 0;
     supabase.from('marketplace_transacoes').insert({
@@ -153,7 +153,9 @@ export function BeneficiosPublico() {
       comissao_percent: selected!.comissao_percent ?? 0,
       status_repasse: 'pendente',
       status_repasse_parceiro: 'pendente',
-    }).catch(() => {});
+    }).then(({ error }: { error: unknown }) => {
+      if (error) console.error('[auto-transacao] erro:', error);
+    });
 
     // Notifica equipe Soul por e-mail (fire-and-forget)
     supabase.functions.invoke('notify-coupon', {
