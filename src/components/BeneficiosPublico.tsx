@@ -90,16 +90,32 @@ export function BeneficiosPublico() {
     return () => { document.title = 'Soul Brasil'; };
   }, []);
 
-  useEffect(() => {
+  const PARCEIROS_SELECT = 'id,nome,categoria,descricao,beneficio,logo_url,registro_profissional,valor_original,valor_unidade,desconto_tipo,desconto_valor,modalidade,cidade_estado,comissao_percent,link_pagamento';
+
+  function fetchParceiros() {
     supabase
       .from('marketplace_parceiros')
-      .select('id,nome,categoria,descricao,beneficio,logo_url,registro_profissional,valor_original,valor_unidade,desconto_tipo,desconto_valor,modalidade,cidade_estado,comissao_percent,link_pagamento')
+      .select(PARCEIROS_SELECT)
       .eq('ativo', true)
       .order('nome')
       .then(({ data }: { data: Parceiro[] | null }) => {
         setParceiros(data ?? []);
         setLoading(false);
       });
+  }
+
+  useEffect(() => {
+    fetchParceiros();
+
+    const channel = supabase
+      .channel('beneficios_parceiros_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_parceiros' }, () => {
+        fetchParceiros();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = catFilter === 'Todos' ? parceiros : parceiros.filter((p) => p.categoria === catFilter);

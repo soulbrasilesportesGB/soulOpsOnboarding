@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useRole, canImport, isSuperAdmin } from './hooks/useRole';
 
@@ -13,11 +13,22 @@ import type { UserListFilters } from './components/UserList';
 import { FileSpreadsheet, LayoutDashboard, Users, LogOut, ShoppingBag } from 'lucide-react';
 import type { View } from './types/common';
 
+const VALID_VIEWS: View[] = ['import', 'team', 'list', 'detail', 'marketplace'];
+
+function getInitialView(): View {
+  const hash = window.location.hash.slice(1) as View;
+  return VALID_VIEWS.includes(hash) ? hash : 'team';
+}
+
 function App() {
   const { session, loading: authLoading, signOut } = useAuth();
   const role = useRole();
 
-  const [currentView, setCurrentView] = useState<View>('team');
+  const [currentView, setCurrentView] = useState<View>(getInitialView);
+
+  useEffect(() => {
+    window.location.hash = currentView;
+  }, [currentView]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [userListFilters, setUserListFilters] = useState<UserListFilters>({

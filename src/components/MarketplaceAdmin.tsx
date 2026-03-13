@@ -143,7 +143,23 @@ export function MarketplaceAdmin() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+
+    // Realtime: re-fetch transactions when they change
+    const channel = supabase
+      .channel('marketplace_admin_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketplace_transacoes' }, () => {
+        supabase
+          .from('marketplace_transacoes')
+          .select('*, marketplace_cupons(codigo)')
+          .order('criado_em', { ascending: false })
+          .then(({ data }: { data: Transacao[] | null }) => setTransacoes(data ?? []));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -320,10 +336,19 @@ export function MarketplaceAdmin() {
   }
 
   async function deleteTransacao(id: string) {
-    if (!confirm('Excluir esta transação?')) return;
+    if (!confirm('Excluir esta transação? O cupom vinculado também será removido.')) return;
+    const transacao = transacoes.find((t) => t.id === id);
     const { error } = await supabase.from('marketplace_transacoes').delete().eq('id', id);
     if (error) { setStatus('Erro ao excluir: ' + error.message); return; }
     setTransacoes((prev) => prev.filter((x) => x.id !== id));
+
+    if (transacao?.cupom_id) {
+      await supabase.from('marketplace_cupons').delete().eq('id', transacao.cupom_id);
+      setCuponsCounts((prev) => {
+        const current = prev[transacao.parceiro_id] ?? 0;
+        return { ...prev, [transacao.parceiro_id]: Math.max(0, current - 1) };
+      });
+    }
   }
 
   // ── Export ──────────────────────────────────────────────────────────────────
