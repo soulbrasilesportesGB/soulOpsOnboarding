@@ -329,10 +329,25 @@ export function MarketplaceAdmin() {
   }
 
   async function deleteParceiro(id: string) {
-    if (!confirm('Excluir este fornecedor? Esta ação não pode ser desfeita.')) return;
+    const hasTransacoes = transacoes.some((t) => t.parceiro_id === id);
+    const msg = hasTransacoes
+      ? 'Excluir este fornecedor?\n\nTodas as transações e cupons vinculados também serão excluídos. Esta ação não pode ser desfeita.'
+      : 'Excluir este fornecedor? Esta ação não pode ser desfeita.';
+    if (!confirm(msg)) return;
+
+    // Delete transactions first (FK constraint), then coupons, then supplier
+    const { error: transErr } = await supabase.from('marketplace_transacoes').delete().eq('parceiro_id', id);
+    if (transErr) { setStatus('Erro ao excluir transações: ' + transErr.message); return; }
+
+    const { error: cupomErr } = await supabase.from('marketplace_cupons').delete().eq('parceiro_id', id);
+    if (cupomErr) { setStatus('Erro ao excluir cupons: ' + cupomErr.message); return; }
+
     const { error } = await supabase.from('marketplace_parceiros').delete().eq('id', id);
     if (error) { setStatus('Erro ao excluir: ' + error.message); return; }
+
     setParceiros((prev) => prev.filter((x) => x.id !== id));
+    setTransacoes((prev) => prev.filter((x) => x.parceiro_id !== id));
+    setCuponsCounts((prev) => { const next = { ...prev }; delete next[id]; return next; });
   }
 
   async function deleteTransacao(id: string) {
