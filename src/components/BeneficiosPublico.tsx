@@ -118,6 +118,18 @@ export function BeneficiosPublico() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Block page close/navigation when athlete is in the middle of payment flow
+  useEffect(() => {
+    const needsPaymentConfirm = resgateStep === 'success' && !!selected?.link_pagamento;
+    if (!needsPaymentConfirm) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [resgateStep, selected]);
+
   const filtered = catFilter === 'Todos' ? parceiros : parceiros.filter((p) => p.categoria === catFilter);
 
   function openResgate(p: Parceiro) {
@@ -589,38 +601,79 @@ export function BeneficiosPublico() {
 
           {selected.link_pagamento ? (
             <>
-              <a
-                href={selected.link_pagamento}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block', background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
-                  color: WHITE, borderRadius: 10, padding: '13px 0', fontSize: 14, fontWeight: 700,
-                  cursor: 'pointer', width: '100%', textAlign: 'center', textDecoration: 'none',
-                  marginBottom: 14, letterSpacing: 0.3,
-                }}
-              >
-                Ir para pagamento →
-              </a>
+              {/* Warning banner */}
               <div style={{
-                fontSize: 12, color: TEXT2, textAlign: 'center',
-                marginBottom: 12, lineHeight: 1.5,
+                background: '#FEF2F2', border: '1.5px solid #FCA5A5', borderRadius: 10,
+                padding: '10px 14px', marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 8,
               }}>
-                Após o pagamento, volte aqui e confirme via WhatsApp:
+                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+                <span style={{ fontSize: 12, color: '#991B1B', lineHeight: 1.5, fontWeight: 600 }}>
+                  Não feche essa página sem confirmar o pagamento via WhatsApp — seu agendamento só é garantido após o Passo 2.
+                </span>
               </div>
-              <a
-                href={`https://wa.me/5541984079334?text=${encodeURIComponent(`Olá! Realizei o pagamento para o benefício ${selected.nome}. Meu código de reserva é ${couponCode}. Aguardo o agendamento!`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block', background: '#25D366', color: WHITE, borderRadius: 10,
-                  padding: '13px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                  width: '100%', textAlign: 'center', textDecoration: 'none',
-                  marginBottom: 10, letterSpacing: 0.3,
-                }}
-              >
-                Confirmar pagamento via WhatsApp
-              </a>
+
+              {/* Step 1 */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                    background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
+                    color: WHITE, fontWeight: 800, fontSize: 13,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>1</div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>Faça o pagamento</span>
+                </div>
+                <a
+                  href={selected.link_pagamento}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'block', background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
+                    color: WHITE, borderRadius: 10, padding: '13px 0', fontSize: 14, fontWeight: 700,
+                    cursor: 'pointer', width: '100%', textAlign: 'center', textDecoration: 'none',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  Ir para pagamento →
+                </a>
+              </div>
+
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1, height: 1, background: BORDER }} />
+                <span style={{ fontSize: 11, color: TEXT2 }}>depois</span>
+                <div style={{ flex: 1, height: 1, background: BORDER }} />
+              </div>
+
+              {/* Step 2 */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                    background: '#25D366',
+                    color: WHITE, fontWeight: 800, fontSize: 13,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>2</div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>Confirme via WhatsApp</span>
+                </div>
+                <a
+                  href={`https://wa.me/5541984079334?text=${encodeURIComponent(`Olá! Realizei o pagamento para o benefício ${selected.nome}. Meu código de reserva é ${couponCode}. Aguardo o agendamento!`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'block', background: '#25D366', color: WHITE, borderRadius: 10,
+                    padding: '13px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    width: '100%', textAlign: 'center', textDecoration: 'none',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  Confirmar pagamento via WhatsApp
+                </a>
+              </div>
             </>
           ) : (
             <a
