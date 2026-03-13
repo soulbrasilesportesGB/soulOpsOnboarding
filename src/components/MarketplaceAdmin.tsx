@@ -445,7 +445,7 @@ export function MarketplaceAdmin() {
                 rows={2} placeholder="Descrição do fornecedor" value={parceiroForm.descricao}
                 onChange={(e) => setParceiroForm((f) => ({ ...f, descricao: e.target.value }))} />
               <textarea className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md text-sm resize-none"
-                rows={2} placeholder="Benefício oferecido (texto visível para o atleta)" value={parceiroForm.beneficio}
+                rows={2} placeholder="Descrição do serviço (texto visível para o atleta)" value={parceiroForm.beneficio}
                 onChange={(e) => setParceiroForm((f) => ({ ...f, beneficio: e.target.value }))} />
             </div>
 
