@@ -706,13 +706,22 @@ export function BeneficiosPublico() {
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img
-              src="/soul-logo.png"
-              alt="Soul Brasil"
-              style={{ height: 36, width: 'auto', objectFit: 'contain' }}
+              src="/Logomarca SBE.png"
+              alt="Soul Brasil Esportes"
+              style={{ height: 44, width: 'auto', objectFit: 'contain' }}
             />
           </div>
-          <div style={{ fontSize: 12, color: TEXT2 }}>
-            Exclusivo para atletas cadastrados
+          <div style={{ fontSize: 12, color: TEXT2, textAlign: 'right' as const }}>
+            Exclusivo para atletas cadastrados no Portal Soul.{' '}
+            Não tem cadastro?{' '}
+            <a
+              href="https://app.soulbrasil.co/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: GREEN_DARK, fontWeight: 700, textDecoration: 'none', borderBottom: `1px solid ${GREEN_DARK}55` }}
+            >
+              Faça agora mesmo!
+            </a>
           </div>
         </div>
       </header>
@@ -732,9 +741,20 @@ export function BeneficiosPublico() {
           <h1 style={{ fontSize: 38, fontWeight: 900, color: TEXT, margin: '0 0 12px', lineHeight: 1.15 }}>
             Benefícios exclusivos<br />para atletas Soul
           </h1>
-          <p style={{ fontSize: 16, color: TEXT2, maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
-            Serviços selecionados pela Soul. Use seu e-mail cadastrado na plataforma para resgatar condições únicas.
+          <p style={{ fontSize: 16, color: TEXT2, maxWidth: 480, margin: '0 auto 16px', lineHeight: 1.7 }}>
+            Serviços selecionados pela Soul. Use seu e-mail cadastrado no Portal da Soul para resgatar condições únicas.
           </p>
+          <a
+            href={`https://wa.me/5541984079334?text=${encodeURIComponent('Olá! Vi o Soul Indica e tenho interesse em divulgar meus serviços para atletas Soul.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 13, color: GREEN_DARK, fontWeight: 600,
+              textDecoration: 'none', borderBottom: `1px solid ${GREEN_DARK}44`,
+            }}
+          >
+            Você é fornecedor? Saiba como participar →
+          </a>
         </div>
 
         {/* Category filter */}
@@ -770,6 +790,38 @@ export function BeneficiosPublico() {
             {filtered.map((p) => <ParceiroCard key={p.id} p={p} />)}
           </div>
         )}
+
+        {/* Partner CTA */}
+        <div style={{
+          marginTop: 64, borderRadius: 16,
+          background: `linear-gradient(135deg, ${GREEN}12, ${GREEN}22)`,
+          border: `1px solid ${GREEN}44`,
+          padding: '32px 24px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: GREEN_DARK, letterSpacing: 1.2, marginBottom: 8 }}>
+            PARA FORNECEDORES
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, marginBottom: 8 }}>
+            Quer divulgar seus serviços para atletas Soul?
+          </div>
+          <div style={{ fontSize: 14, color: TEXT2, marginBottom: 24, lineHeight: 1.6 }}>
+            Faça parte do Soul Indica e alcance uma comunidade exclusiva de atletas de alto desempenho.
+          </div>
+          <a
+            href={`https://wa.me/5541984079334?text=${encodeURIComponent('Olá! Vi o Soul Indica e tenho interesse em divulgar meus serviços para atletas Soul.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
+              color: WHITE, borderRadius: 10, padding: '13px 32px',
+              fontSize: 14, fontWeight: 700, textDecoration: 'none', letterSpacing: 0.3,
+              boxShadow: `0 4px 14px ${GREEN}44`,
+            }}
+          >
+            Quero ser um parceiro Soul →
+          </a>
+        </div>
 
         {/* Footer note */}
         <div style={{ textAlign: 'center', marginTop: 64, paddingTop: 32, borderTop: `1px solid ${BORDER}`, color: TEXT2, fontSize: 12 }}>
