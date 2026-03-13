@@ -457,10 +457,13 @@ export function MarketplaceAdmin() {
                   placeholder="Valor original (R$)" type="number" min="0" step="0.01"
                   value={parceiroForm.valor_original}
                   onChange={(e) => setParceiroForm((f) => ({ ...f, valor_original: e.target.value }))} />
-                <input className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  placeholder="Unidade (ex: sessão, mês)"
-                  value={parceiroForm.valor_unidade}
-                  onChange={(e) => setParceiroForm((f) => ({ ...f, valor_unidade: e.target.value }))} />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-500">O que está incluído no preço</label>
+                  <input className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="Ex: 4 sessões, mensal, 1 consulta"
+                    value={parceiroForm.valor_unidade}
+                    onChange={(e) => setParceiroForm((f) => ({ ...f, valor_unidade: e.target.value }))} />
+                </div>
                 <select className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                   value={parceiroForm.desconto_tipo}
                   onChange={(e) => setParceiroForm((f) => ({ ...f, desconto_tipo: e.target.value as 'percent' | 'valor' }))}>
@@ -477,12 +480,13 @@ export function MarketplaceAdmin() {
                 <div className="mt-2 text-sm text-gray-600 bg-green-50 border border-green-200 rounded-md px-3 py-2">
                   Exibição pública: <span className="line-through text-gray-400">
                     R$ {parseFloat(parceiroForm.valor_original).toFixed(2)}
-                    {parceiroForm.valor_unidade ? `/${parceiroForm.valor_unidade}` : ''}
                   </span>
                   {' '}→ <strong className="text-green-700">
                     R$ {precoComDesconto.toFixed(2)}
-                    {parceiroForm.valor_unidade ? `/${parceiroForm.valor_unidade}` : ''}
                   </strong>
+                  {parceiroForm.valor_unidade && (
+                    <span className="ml-1 text-gray-500">por {parceiroForm.valor_unidade}</span>
+                  )}
                   {parceiroForm.desconto_tipo === 'percent' && (
                     <span className="ml-2 text-green-600 font-semibold">{parceiroForm.desconto_valor}% OFF</span>
                   )}

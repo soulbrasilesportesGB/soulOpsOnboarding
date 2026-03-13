@@ -151,7 +151,6 @@ export function BeneficiosPublico() {
     const comissaoPercent = selected!.comissao_percent ?? 0;
     const precoFinalAuto = calcPrecoComDesconto(selected!);
     const valorBruto = precoFinalAuto ?? selected!.valor_original ?? 0;
-    console.log('[auto-transacao] inserindo', { parceiroId, valorBruto, comissaoPercent });
     const { error: transErr } = await supabase.from('marketplace_transacoes').insert({
       parceiro_id: parceiroId,
       atleta_email: email,
@@ -162,7 +161,7 @@ export function BeneficiosPublico() {
       status_repasse: 'pendente',
       status_repasse_parceiro: 'pendente',
     });
-    console.log('[auto-transacao] resultado', transErr ?? 'ok');
+
 
     // Notifica equipe Soul por e-mail (fire-and-forget)
     supabase.functions.invoke('notify-coupon', {
@@ -283,12 +282,11 @@ export function BeneficiosPublico() {
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: TEXT2, textDecoration: 'line-through' }}>
-                R$ {p.valor_original.toFixed(2)}{p.valor_unidade ? `/${p.valor_unidade}` : ''}
+                R$ {p.valor_original.toFixed(2)}
               </span>
               <span style={{ fontSize: 20, fontWeight: 800, color: GREEN_DARK }}>
                 R$ {precoFinal.toFixed(2)}
               </span>
-              {p.valor_unidade && <span style={{ fontSize: 12, color: TEXT2 }}>/{p.valor_unidade}</span>}
               {p.desconto_tipo === 'percent' && p.desconto_valor && (
                 <span style={{
                   fontSize: 11, fontWeight: 700, background: GREEN, color: WHITE,
@@ -298,6 +296,16 @@ export function BeneficiosPublico() {
                 </span>
               )}
             </div>
+            {p.valor_unidade && (
+              <span style={{
+                display: 'inline-block', marginTop: 6,
+                fontSize: 11, fontWeight: 600, color: GREEN_DARK,
+                background: `${GREEN}22`, border: `1px solid ${GREEN}55`,
+                borderRadius: 20, padding: '2px 10px',
+              }}>
+                {p.valor_unidade}
+              </span>
+            )}
           </div>
         )}
 
@@ -417,12 +425,11 @@ export function BeneficiosPublico() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' as const }}>
                 <span style={{ fontSize: 13, color: TEXT2, textDecoration: 'line-through' }}>
-                  De R$ {selected.valor_original.toFixed(2)}{selected.valor_unidade ? `/${selected.valor_unidade}` : ''}
+                  De R$ {selected.valor_original.toFixed(2)}
                 </span>
                 <span style={{ fontSize: 26, fontWeight: 900, color: GREEN_DARK }}>
                   R$ {precoFinalModal.toFixed(2)}
                 </span>
-                {selected.valor_unidade && <span style={{ fontSize: 13, color: TEXT2 }}>/{selected.valor_unidade}</span>}
                 {selected.desconto_tipo === 'percent' && selected.desconto_valor && (
                   <span style={{
                     fontSize: 12, fontWeight: 700, background: GREEN, color: WHITE,
@@ -432,6 +439,16 @@ export function BeneficiosPublico() {
                   </span>
                 )}
               </div>
+              {selected.valor_unidade && (
+                <span style={{
+                  display: 'inline-block', marginTop: 8,
+                  fontSize: 12, fontWeight: 600, color: GREEN_DARK,
+                  background: `${GREEN}22`, border: `1px solid ${GREEN}55`,
+                  borderRadius: 20, padding: '3px 12px',
+                }}>
+                  {selected.valor_unidade}
+                </span>
+              )}
             </div>
           )}
 
@@ -542,12 +559,29 @@ export function BeneficiosPublico() {
             </div>
           </div>
 
-          <div style={{
-            background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
-            padding: '10px 14px', fontSize: 12, color: '#92400E', textAlign: 'center', marginBottom: 16,
-          }}>
-            Em breve a Soul entrará em contato com o link de agendamento.
-          </div>
+          <a
+            href={`https://wa.me/5541984079334?text=${encodeURIComponent(`Olá! Gerei o cupom ${couponCode} para ${selected.nome}.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block',
+              background: '#25D366',
+              color: WHITE,
+              border: 'none',
+              borderRadius: 10,
+              padding: '13px 0',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              width: '100%',
+              textAlign: 'center',
+              textDecoration: 'none',
+              marginBottom: 10,
+              letterSpacing: 0.3,
+            }}
+          >
+            Falar com a Soul para finalizar o resgate
+          </a>
 
           <button style={{
             background: WHITE, color: TEXT2, border: `1.5px solid ${BORDER}`,
