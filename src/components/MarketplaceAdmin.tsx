@@ -538,15 +538,19 @@ export function MarketplaceAdmin() {
             <div>
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Admin / Interno</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                  placeholder="Link de agendamento (Calendly, site, WA)" value={parceiroForm.link_agendamento}
-                  onChange={(e) => setParceiroForm((f) => ({ ...f, link_agendamento: e.target.value }))} />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Link de agendamento (Calendly, site, WA)</label>
+                  <input className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="https://..." value={parceiroForm.link_agendamento}
+                    onChange={(e) => setParceiroForm((f) => ({ ...f, link_agendamento: e.target.value }))} />
+                </div>
                 <div className="relative">
+                  <label className="block text-xs text-gray-500 mb-1">Comissão Soul (% retida pela Soul em cada transação)</label>
                   <input className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-12"
-                    placeholder="Comissão Soul padrão (%)" type="number" min="0" max="100" step="0.1"
+                    placeholder="Ex: 20" type="number" min="0" max="100" step="0.1"
                     value={parceiroForm.comissao_percent}
                     onChange={(e) => setParceiroForm((f) => ({ ...f, comissao_percent: e.target.value }))} />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                  <span className="absolute right-3 bottom-2.5 text-gray-400 text-sm">%</span>
                 </div>
               </div>
             </div>
