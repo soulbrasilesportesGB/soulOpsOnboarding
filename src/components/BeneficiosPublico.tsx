@@ -375,12 +375,19 @@ export function BeneficiosPublico() {
   function ModalContent() {
     if (!selected) return null;
 
-    const closeBtn = (
-      <button onClick={closeModal} style={{
-        position: 'absolute', top: 16, right: 16,
-        background: '#F3F4F6', border: 'none', borderRadius: '50%',
-        width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: TEXT2, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+    const closeBtnStyle: React.CSSProperties = {
+      position: 'absolute', top: 16, right: 16,
+      background: '#F3F4F6', border: 'none', borderRadius: '50%',
+      width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: TEXT2, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+    };
+    const closeBtn = <button onClick={closeModal} style={closeBtnStyle}>✕</button>;
+    const closeBtnWithConfirm = (
+      <button style={closeBtnStyle} onClick={() => {
+        if (selected?.link_pagamento) {
+          if (!confirm('Você já confirmou o pagamento via WhatsApp (Passo 2)?\n\nSe ainda não confirmou, seu agendamento não será garantido.')) return;
+        }
+        closeModal();
       }}>✕</button>
     );
 
@@ -565,7 +572,7 @@ export function BeneficiosPublico() {
     if (resgateStep === 'success') {
       return (
         <>
-          {closeBtn}
+          {closeBtnWithConfirm}
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%',
@@ -687,7 +694,12 @@ export function BeneficiosPublico() {
           <button style={{
             background: WHITE, color: TEXT2, border: `1.5px solid ${BORDER}`,
             borderRadius: 10, padding: '9px 0', fontSize: 12, cursor: 'pointer', width: '100%',
-          }} onClick={closeModal}>Fechar</button>
+          }} onClick={() => {
+            if (selected?.link_pagamento) {
+              if (!confirm('Você já confirmou o pagamento via WhatsApp (Passo 2)?\n\nSe ainda não confirmou, seu agendamento não será garantido.')) return;
+            }
+            closeModal();
+          }}>Fechar</button>
         </>
       );
     }
