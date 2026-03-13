@@ -359,11 +359,21 @@ export function MarketplaceAdmin() {
 
     if (transacao?.cupom_id) {
       await supabase.from('marketplace_cupons').delete().eq('id', transacao.cupom_id);
-      setCuponsCounts((prev) => {
-        const current = prev[transacao.parceiro_id] ?? 0;
-        return { ...prev, [transacao.parceiro_id]: Math.max(0, current - 1) };
-      });
+    } else if (transacao?.parceiro_id && transacao?.atleta_email) {
+      // Legacy transactions without cupom_id: delete by parceiro+email
+      await supabase.from('marketplace_cupons')
+        .delete()
+        .eq('parceiro_id', transacao.parceiro_id)
+        .eq('atleta_email', transacao.atleta_email);
     }
+
+    // Re-fetch coupon counts from DB to ensure accuracy
+    const { data: c } = await supabase.from('marketplace_cupons').select('parceiro_id');
+    const counts: Record<string, number> = {};
+    (c ?? []).forEach((r: { parceiro_id: string }) => {
+      counts[r.parceiro_id] = (counts[r.parceiro_id] ?? 0) + 1;
+    });
+    setCuponsCounts(counts);
   }
 
   // ── Export ──────────────────────────────────────────────────────────────────
