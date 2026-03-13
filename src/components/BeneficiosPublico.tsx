@@ -121,10 +121,14 @@ export function BeneficiosPublico() {
     setResgateStep('validating');
     setErrorMsg('');
 
-    const { data: exists, error: rpcErr } = await supabase.rpc('check_athlete_email', { p_email: email });
-    if (rpcErr || !exists) {
+    const { data: status, error: rpcErr } = await supabase.rpc('get_athlete_email_status', { p_email: email });
+    if (rpcErr || status !== 'ok') {
       setResgateStep('error');
-      setErrorMsg('E-mail não encontrado na plataforma Soul. Verifique se é o mesmo e-mail do seu cadastro.');
+      if (status === 'stalled') {
+        setErrorMsg('Seu cadastro ainda não está elegível para resgatar benefícios. Para ter acesso ao Soul Indica, complete seu perfil no Portal da Soul em app.soulbrasil.co. É rápido e garante que você aproveite todas as vantagens exclusivas para atletas.');
+      } else {
+        setErrorMsg('E-mail não encontrado na plataforma Soul. Verifique se é o mesmo e-mail do seu cadastro.');
+      }
       return;
     }
 
