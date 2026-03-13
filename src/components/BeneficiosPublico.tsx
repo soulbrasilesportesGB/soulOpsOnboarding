@@ -505,7 +505,7 @@ export function BeneficiosPublico() {
               marginBottom: 18,
             }}>
               <div style={{ fontSize: 10, color: '#166534', fontWeight: 700, letterSpacing: 1.5, marginBottom: 4 }}>
-                BENEFÍCIO INCLUSO
+                DESCRIÇÃO DO SERVIÇO
               </div>
               <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.6 }}>{selected.beneficio}</div>
             </div>
