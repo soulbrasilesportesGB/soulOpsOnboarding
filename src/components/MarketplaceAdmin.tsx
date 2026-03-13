@@ -33,16 +33,20 @@ interface Parceiro {
   mensalidade_status: 'ativo' | 'pendente' | 'inadimplente';
   // admin-only
   link_agendamento: string | null;
+  link_pagamento: string | null;
 }
 
 interface Transacao {
   id: string;
   parceiro_id: string;
   atleta_email: string | null;
+  cupom_id: string | null;
+  marketplace_cupons: { codigo: string } | null;
   valor_unitario: number | null;
   quantidade: number;
   valor_bruto: number;
   comissao_percent: number;
+  valor_comissao: number;
   valor_liquido: number;
   status_repasse: 'pendente' | 'pago';
   status_repasse_parceiro: 'pendente' | 'pago';
@@ -82,6 +86,7 @@ function emptyParceiroForm() {
     mensalidade_status: 'ativo' as 'ativo' | 'pendente' | 'inadimplente',
     comissao_percent: '',
     link_agendamento: '',
+    link_pagamento: '',
   };
 }
 
@@ -114,11 +119,13 @@ function downloadCSV(filename: string, headers: string[], rows: string[][]) {
   URL.revokeObjectURL(a.href);
 }
 
+
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export function MarketplaceAdmin() {
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [cuponsCounts, setCuponsCounts] = useState<Record<string, number>>({});
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [transacaoSearch, setTransacaoSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
 
@@ -152,8 +159,8 @@ export function MarketplaceAdmin() {
     setLoading(true);
     const [{ data: p }, { data: c }, { data: t }] = await Promise.all([
       supabase.from('marketplace_parceiros').select('*').order('nome'),
-      supabase.from('marketplace_cupons').select('id, parceiro_id'),
-      supabase.from('marketplace_transacoes').select('*').order('criado_em', { ascending: false }),
+      supabase.from('marketplace_cupons').select('id, parceiro_id, atleta_email, codigo').order('criado_em', { ascending: false }),
+      supabase.from('marketplace_transacoes').select('*, marketplace_cupons(codigo)').order('criado_em', { ascending: false }),
     ]);
     setParceiros(p ?? []);
     const counts: Record<string, number> = {};
@@ -252,6 +259,7 @@ export function MarketplaceAdmin() {
       mensalidade_valor: parceiroForm.mensalidade_valor ? parseFloat(parceiroForm.mensalidade_valor) : null,
       mensalidade_status: parceiroForm.mensalidade_status,
       link_agendamento: parceiroForm.link_agendamento || null,
+      link_pagamento: parceiroForm.link_pagamento || null,
     };
     let error;
     if (editingId) {
@@ -304,6 +312,13 @@ export function MarketplaceAdmin() {
     setTransacoes((prev) => prev.map((x) => (x.id === t.id ? { ...x, status_repasse_parceiro: next } : x)));
   }
 
+  async function deleteParceiro(id: string) {
+    if (!confirm('Excluir este fornecedor? Esta ação não pode ser desfeita.')) return;
+    const { error } = await supabase.from('marketplace_parceiros').delete().eq('id', id);
+    if (error) { setStatus('Erro ao excluir: ' + error.message); return; }
+    setParceiros((prev) => prev.filter((x) => x.id !== id));
+  }
+
   async function deleteTransacao(id: string) {
     if (!confirm('Excluir esta transação?')) return;
     const { error } = await supabase.from('marketplace_transacoes').delete().eq('id', id);
@@ -333,14 +348,16 @@ export function MarketplaceAdmin() {
     const pNome: Record<string, string> = {};
     parceiros.forEach((p) => (pNome[p.id] = p.nome));
     downloadCSV('transacoes.csv',
-      ['Fornecedor', 'Atleta Email', 'Qtd', 'Valor Unitário', 'Valor Bruto', 'Comissão %', 'Valor Líquido', 'Repasse Atleta', 'Repasse Fornecedor', 'Data'],
+      ['Cupom', 'Fornecedor', 'Atleta Email', 'Qtd', 'Valor Unitário', 'Valor Bruto', 'Comissão %', 'Comissão R$', 'Valor Líquido', 'Repasse Atleta', 'Repasse Fornecedor', 'Data'],
       transacoes.map((t) => [
+        t.marketplace_cupons?.codigo ?? '',
         pNome[t.parceiro_id] ?? t.parceiro_id,
         t.atleta_email ?? '',
         String(t.quantidade ?? 1),
         t.valor_unitario != null ? Number(t.valor_unitario).toFixed(2) : '',
         Number(t.valor_bruto).toFixed(2),
         String(t.comissao_percent),
+        Number(t.valor_comissao ?? (t.valor_bruto * t.comissao_percent / 100)).toFixed(2),
         Number(t.valor_liquido).toFixed(2),
         t.status_repasse,
         t.status_repasse_parceiro ?? 'pendente',
@@ -370,6 +387,7 @@ export function MarketplaceAdmin() {
       mensalidade_valor: p.mensalidade_valor != null ? String(p.mensalidade_valor) : '',
       mensalidade_status: p.mensalidade_status ?? 'ativo',
       link_agendamento: p.link_agendamento ?? '',
+      link_pagamento: p.link_pagamento ?? '',
     });
     setShowParceiroForm(true);
   }
@@ -500,7 +518,10 @@ export function MarketplaceAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <select className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                   value={parceiroForm.modalidade}
-                  onChange={(e) => setParceiroForm((f) => ({ ...f, modalidade: e.target.value as 'presencial' | 'online' | 'híbrido' }))}>
+                  onChange={(e) => {
+                    const m = e.target.value as 'presencial' | 'online' | 'híbrido';
+                    setParceiroForm((f) => ({ ...f, modalidade: m, cidade_estado: m === 'online' ? '' : f.cidade_estado }));
+                  }}>
                   <option value="online">Online</option>
                   <option value="presencial">Presencial</option>
                   <option value="híbrido">Híbrido</option>
@@ -561,6 +582,12 @@ export function MarketplaceAdmin() {
                     value={parceiroForm.comissao_percent}
                     onChange={(e) => setParceiroForm((f) => ({ ...f, comissao_percent: e.target.value }))} />
                   <span className="absolute right-3 bottom-2.5 text-gray-400 text-sm">%</span>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Link de pagamento ASAAS (link de cobrança gerado no painel ASAAS)</label>
+                  <input className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    placeholder="https://www.asaas.com/c/..." value={parceiroForm.link_pagamento}
+                    onChange={(e) => setParceiroForm((f) => ({ ...f, link_pagamento: e.target.value }))} />
                 </div>
               </div>
             </div>
@@ -631,6 +658,10 @@ export function MarketplaceAdmin() {
                           className={`px-3 py-1 text-xs rounded-md transition ${p.ativo ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'}`}>
                           {p.ativo ? 'Desativar' : 'Ativar'}
                         </button>
+                        <button onClick={() => deleteParceiro(p.id)}
+                          className="px-3 py-1 border border-red-200 text-red-500 text-xs rounded-md hover:bg-red-50 transition">
+                          Excluir
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -652,6 +683,14 @@ export function MarketplaceAdmin() {
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition">
             {showTransForm ? '✕ Cancelar' : '+ Nova transação'}
           </button>
+        </div>
+        <div className="mb-4">
+          <input
+            className="w-full max-w-sm px-3 py-2 border border-gray-300 rounded-md text-sm"
+            placeholder="Buscar por cupom, email ou fornecedor..."
+            value={transacaoSearch}
+            onChange={(e) => setTransacaoSearch(e.target.value)}
+          />
         </div>
 
         {/* Transaction form */}
@@ -775,17 +814,27 @@ export function MarketplaceAdmin() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200">
-                {['Fornecedor', 'Atleta', 'Bruto', 'Comissão', 'Líquido', 'Repasse atleta', 'Repasse fornecedor', 'Data', ''].map((h) => (
+                {['Cupom', 'Fornecedor', 'Atleta', 'Bruto', 'Comissão %', 'Comissão R$', 'Líquido', 'Repasse atleta', 'Repasse fornecedor', 'Data', ''].map((h) => (
                   <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {transacoes.map((t) => {
+              {transacoes.filter((t) => {
+                if (!transacaoSearch.trim()) return true;
+                const q = transacaoSearch.trim().toLowerCase();
+                const nome = parceiros.find((p) => p.id === t.parceiro_id)?.nome ?? '';
+                const cupom = t.marketplace_cupons?.codigo ?? '—';
+                return cupom.toLowerCase().includes(q) || (t.atleta_email ?? '').toLowerCase().includes(q) || nome.toLowerCase().includes(q);
+              }).map((t) => {
                 const nome = parceiros.find((p) => p.id === t.parceiro_id)?.nome ?? '—';
                 const repaseParceiro = t.status_repasse_parceiro ?? 'pendente';
+                const cupom = t.marketplace_cupons?.codigo ?? '—';
                 return (
                   <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-3 py-3">
+                      <span className="font-mono text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded">{cupom}</span>
+                    </td>
                     <td className="px-3 py-3 font-medium text-gray-800">{nome}</td>
                     <td className="px-3 py-3 text-gray-600">{t.atleta_email ?? '—'}</td>
                     <td className="px-3 py-3 text-gray-700">
@@ -795,6 +844,7 @@ export function MarketplaceAdmin() {
                       )}
                     </td>
                     <td className="px-3 py-3 text-gray-600">{t.comissao_percent}%</td>
+                    <td className="px-3 py-3 text-gray-600">R$ {Number(t.valor_comissao ?? (t.valor_bruto * t.comissao_percent / 100)).toFixed(2)}</td>
                     <td className="px-3 py-3 font-semibold text-gray-800">R$ {Number(t.valor_liquido).toFixed(2)}</td>
                     <td className="px-3 py-3">
                       <button onClick={() => toggleRepasse(t)}
@@ -829,7 +879,7 @@ export function MarketplaceAdmin() {
                 );
               })}
               {transacoes.length === 0 && (
-                <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">Nenhuma transação registrada</td></tr>
+                <tr><td colSpan={11} className="px-3 py-8 text-center text-gray-400">Nenhuma transação registrada</td></tr>
               )}
             </tbody>
           </table>
