@@ -566,36 +566,33 @@ export function BeneficiosPublico() {
       return (
         <>
           {closeBtn}
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{
-              width: 56, height: 56, borderRadius: '50%',
+              width: 40, height: 40, borderRadius: '50%',
               background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', fontSize: 24,
+              margin: '0 auto 10px', fontSize: 18, color: WHITE, fontWeight: 800,
             }}>✓</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, marginBottom: 4 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: TEXT, marginBottom: 2 }}>
               Cupom gerado com sucesso!
             </div>
-            <div style={{ fontSize: 13, color: TEXT2 }}>{selected.nome}</div>
+            <div style={{ fontSize: 12, color: TEXT2 }}>{selected.nome}</div>
           </div>
 
           <div style={{
             background: `linear-gradient(135deg, ${GREEN}08, ${GREEN}14)`,
             border: `2px solid ${GREEN}`,
-            borderRadius: 14,
-            padding: '24px 20px',
+            borderRadius: 12,
+            padding: '12px 16px',
             textAlign: 'center',
-            marginBottom: 20,
+            marginBottom: 12,
           }}>
-            <div style={{ fontSize: 10, color: TEXT2, letterSpacing: 3, marginBottom: 10 }}>SEU CUPOM EXCLUSIVO</div>
+            <div style={{ fontSize: 10, color: TEXT2, letterSpacing: 2, marginBottom: 6 }}>SEU CUPOM EXCLUSIVO</div>
             <div style={{
-              fontSize: 32, fontWeight: 900, color: GREEN_DARK,
-              letterSpacing: 6, fontVariantNumeric: 'tabular-nums',
+              fontSize: 26, fontWeight: 900, color: GREEN_DARK,
+              letterSpacing: 5, fontVariantNumeric: 'tabular-nums',
             }}>
               {couponCode}
-            </div>
-            <div style={{ fontSize: 12, color: TEXT2, marginTop: 12 }}>
-              Apresente este código à Soul para resgatar seu benefício
             </div>
           </div>
 
@@ -604,26 +601,24 @@ export function BeneficiosPublico() {
               {/* Warning banner */}
               <div style={{
                 background: '#FEF2F2', border: '1.5px solid #FCA5A5', borderRadius: 10,
-                padding: '10px 14px', marginBottom: 18, display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '8px 12px', marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 6,
               }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-                <span style={{ fontSize: 12, color: '#991B1B', lineHeight: 1.5, fontWeight: 600 }}>
+                <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+                <span style={{ fontSize: 11, color: '#991B1B', lineHeight: 1.4, fontWeight: 600 }}>
                   Não feche essa página sem confirmar o pagamento via WhatsApp — seu agendamento só é garantido após o Passo 2.
                 </span>
               </div>
 
               {/* Step 1 */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-                }}>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <div style={{
-                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                     background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
-                    color: WHITE, fontWeight: 800, fontSize: 13,
+                    color: WHITE, fontWeight: 800, fontSize: 12,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>1</div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>Faça o pagamento</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>Faça o pagamento</span>
                 </div>
                 <a
                   href={selected.link_pagamento}
@@ -631,7 +626,7 @@ export function BeneficiosPublico() {
                   rel="noopener noreferrer"
                   style={{
                     display: 'block', background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
-                    color: WHITE, borderRadius: 10, padding: '13px 0', fontSize: 14, fontWeight: 700,
+                    color: WHITE, borderRadius: 10, padding: '10px 0', fontSize: 13, fontWeight: 700,
                     cursor: 'pointer', width: '100%', textAlign: 'center', textDecoration: 'none',
                     letterSpacing: 0.3,
                   }}
@@ -641,24 +636,22 @@ export function BeneficiosPublico() {
               </div>
 
               {/* Divider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <div style={{ flex: 1, height: 1, background: BORDER }} />
-                <span style={{ fontSize: 11, color: TEXT2 }}>depois</span>
+                <span style={{ fontSize: 10, color: TEXT2 }}>depois</span>
                 <div style={{ flex: 1, height: 1, background: BORDER }} />
               </div>
 
               {/* Step 2 */}
-              <div style={{ marginBottom: 10 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-                }}>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <div style={{
-                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                     background: '#25D366',
-                    color: WHITE, fontWeight: 800, fontSize: 13,
+                    color: WHITE, fontWeight: 800, fontSize: 12,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>2</div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>Confirme via WhatsApp</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>Confirme via WhatsApp</span>
                 </div>
                 <a
                   href={`https://wa.me/5541984079334?text=${encodeURIComponent(`Olá! Realizei o pagamento para o benefício ${selected.nome}. Meu código de reserva é ${couponCode}. Aguardo o agendamento!`)}`}
@@ -666,7 +659,7 @@ export function BeneficiosPublico() {
                   rel="noopener noreferrer"
                   style={{
                     display: 'block', background: '#25D366', color: WHITE, borderRadius: 10,
-                    padding: '13px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                    padding: '10px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                     width: '100%', textAlign: 'center', textDecoration: 'none',
                     letterSpacing: 0.3,
                   }}
@@ -674,7 +667,7 @@ export function BeneficiosPublico() {
                   Confirmar pagamento via WhatsApp
                 </a>
               </div>
-            </>
+</>
           ) : (
             <a
               href={`https://wa.me/5541984079334?text=${encodeURIComponent(`Olá! Gerei o cupom ${couponCode} para ${selected.nome}.`)}`}
@@ -693,7 +686,7 @@ export function BeneficiosPublico() {
 
           <button style={{
             background: WHITE, color: TEXT2, border: `1.5px solid ${BORDER}`,
-            borderRadius: 10, padding: '12px 0', fontSize: 13, cursor: 'pointer', width: '100%',
+            borderRadius: 10, padding: '9px 0', fontSize: 12, cursor: 'pointer', width: '100%',
           }} onClick={closeModal}>Fechar</button>
         </>
       );
@@ -938,7 +931,7 @@ export function BeneficiosPublico() {
           onClick={closeModal}
         >
           <div
-            style={{ background: WHITE, borderRadius: 20, padding: 32, maxWidth: 480, width: '100%', position: 'relative', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            style={{ background: WHITE, borderRadius: 20, padding: 24, maxWidth: 480, width: '100%', position: 'relative', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <ModalContent />
